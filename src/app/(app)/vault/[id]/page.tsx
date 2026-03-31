@@ -1,24 +1,37 @@
 "use client";
 
-import { ArrowLeft, Pause, Pencil, PlusCircle, RefreshCw } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { use } from "react";
-import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
+import { use, useEffect, useState } from "react";
 import { ContentLayout } from "@/components/ContentLayout";
 import { StockLogo } from "@/components/StockLogo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { type ChartConfig, ChartContainer } from "@/components/ui/chart";
-import { getStockByTicker, getVaultById } from "@/lib/data";
-import { formatCurrency } from "@/lib/formatters";
+import { Skeleton } from "@/components/ui/skeleton";
+import { BuyCard } from "@/components/vault/BuyCard";
+import { UsdcBalanceCard } from "@/components/vault/UsdcBalanceCard";
+import { getStockByTicker } from "@/lib/data";
+import { api } from "@/lib/eden";
+import { formatAddress, formatDate } from "@/lib/formatters";
 
-const chartConfig: ChartConfig = {
-  totalValue: {
-    label: "Vault Value",
-    color: "hsl(142 76% 36%)",
-  },
+type VaultData = {
+  vault: {
+    id: string;
+    name: string;
+    owner: string;
+    smartAccountAddress: string | null;
+    strategy: string;
+    dcaFrequency: string | null;
+    dcaAmount: string | null;
+    createdAt: string;
+  };
+  compositions: {
+    ticker: string;
+    tokenAddress: string;
+    weight: number;
+  }[];
 };
 
 export default function VaultDetailPage({
@@ -27,11 +40,52 @@ export default function VaultDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const vault = getVaultById(id);
+  const [data, setData] = useState<VaultData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-  if (!vault) {
+  useEffect(() => {
+    async function fetchVault() {
+      const { data: result, error: apiError } = await api.vault({ id }).get();
+
+      if (apiError || !result) {
+        setError(true);
+        setLoading(false);
+        return;
+      }
+
+      setData(result as VaultData);
+      setLoading(false);
+    }
+
+    fetchVault();
+  }, [id]);
+
+  if (error) {
     notFound();
   }
+
+  if (loading || !data) {
+    return (
+      <ContentLayout>
+        <div className="space-y-6">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" asChild>
+              <Link href="/">
+                <ArrowLeft className="size-4" />
+              </Link>
+            </Button>
+            <Skeleton className="h-7 w-48" />
+          </div>
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="size-6 animate-spin text-muted-foreground" />
+          </div>
+        </div>
+      </ContentLayout>
+    );
+  }
+
+  const { vault, compositions } = data;
 
   return (
     <ContentLayout>
@@ -44,139 +98,30 @@ export default function VaultDetailPage({
               </Link>
             </Button>
             <h1 className="text-lg font-semibold">{vault.name}</h1>
-            <Badge
-              variant="secondary"
-              className="border-positive/20 bg-positive/10 font-mono text-positive uppercase"
-            >
-              {vault.status}
+            <Badge variant="secondary" className="font-mono uppercase">
+              {vault.strategy}
             </Badge>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="gap-1.5">
-              <PlusCircle className="size-4" />
-              Add Funds
-            </Button>
-            <Button variant="outline" size="sm" className="gap-1.5">
-              <Pause className="size-4" />
-              Pause
-            </Button>
-            <Button variant="outline" size="sm" className="gap-1.5">
-              <Pencil className="size-4" />
-              Edit
-            </Button>
-          </div>
+        </div>
+
+        <div className="flex h-1.5 gap-px overflow-hidden rounded-full">
+          {compositions.map((comp) => {
+            const stock = getStockByTicker(comp.ticker);
+            return (
+              <div
+                key={comp.ticker}
+                className="h-full"
+                style={{
+                  width: `${comp.weight}%`,
+                  backgroundColor: stock?.color ?? "#666",
+                }}
+              />
+            );
+          })}
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="space-y-6 lg:col-span-2">
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-muted-foreground">
-                Total Vault Value
-              </p>
-              <div className="flex items-baseline gap-3">
-                <p className="font-mono text-3xl font-bold tracking-tight">
-                  {formatCurrency(vault.totalValue)}
-                </p>
-                <Badge
-                  variant="secondary"
-                  className="border-positive/20 bg-positive/10 font-mono text-positive"
-                >
-                  +{formatCurrency(vault.totalGainAmount)} · +
-                  {vault.totalGainPercent.toFixed(1)}% all time
-                </Badge>
-              </div>
-            </div>
-
-            <div className="flex h-1.5 gap-px overflow-hidden rounded-full">
-              {vault.allocations.map((alloc) => {
-                const stock = getStockByTicker(alloc.ticker);
-                return (
-                  <div
-                    key={alloc.ticker}
-                    className="h-full"
-                    style={{
-                      width: `${alloc.weight}%`,
-                      backgroundColor: stock?.color ?? "#666",
-                    }}
-                  />
-                );
-              })}
-            </div>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    30 Day Performance
-                  </CardTitle>
-                  <Badge
-                    variant="secondary"
-                    className="border-positive/20 bg-positive/10 font-mono text-positive"
-                  >
-                    Outperforming SPY by {vault.benchmarkDelta}%
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <ChartContainer
-                  config={chartConfig}
-                  className="h-[200px] w-full"
-                >
-                  <AreaChart
-                    data={vault.performanceHistory}
-                    margin={{ top: 5, right: 10, left: 10, bottom: 0 }}
-                  >
-                    <defs>
-                      <linearGradient
-                        id="vaultFill"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="0%"
-                          stopColor="hsl(142 76% 36%)"
-                          stopOpacity={0.15}
-                        />
-                        <stop
-                          offset="100%"
-                          stopColor="hsl(142 76% 36%)"
-                          stopOpacity={0}
-                        />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid
-                      vertical={false}
-                      strokeDasharray="3 3"
-                      className="stroke-border"
-                    />
-                    <XAxis
-                      dataKey="date"
-                      tickLine={false}
-                      axisLine={false}
-                      tickFormatter={(val: string) => {
-                        const d = new Date(val);
-                        return `${d.toLocaleString("en", { month: "short" })} ${d.getDate()}`;
-                      }}
-                      tick={{ fontSize: 12 }}
-                      className="fill-muted-foreground"
-                      interval="preserveStartEnd"
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="totalValue"
-                      stroke="hsl(142 76% 36%)"
-                      strokeWidth={1.5}
-                      fill="url(#vaultFill)"
-                    />
-                  </AreaChart>
-                </ChartContainer>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="space-y-4">
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -184,31 +129,31 @@ export default function VaultDetailPage({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {vault.allocations.map((alloc) => {
-                  const stock = getStockByTicker(alloc.ticker);
+                {compositions.map((comp) => {
+                  const stock = getStockByTicker(comp.ticker);
                   return (
                     <div
-                      key={alloc.ticker}
+                      key={comp.ticker}
                       className="flex items-center justify-between"
                     >
                       <div className="flex items-center gap-2.5">
                         <StockLogo
-                          ticker={alloc.ticker}
+                          ticker={comp.ticker}
                           color={stock?.color ?? "#666"}
                           logo={stock?.logo}
                           size="sm"
                         />
                         <div>
                           <p className="text-sm font-medium">
-                            {stock?.name ?? alloc.ticker}
+                            {stock?.name ?? comp.ticker}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {alloc.ticker} · {alloc.weight}%
+                            {comp.ticker}
                           </p>
                         </div>
                       </div>
                       <p className="font-mono text-sm font-semibold">
-                        {formatCurrency(alloc.currentValue)}
+                        {comp.weight}%
                       </p>
                     </div>
                   );
@@ -217,21 +162,70 @@ export default function VaultDetailPage({
             </Card>
 
             <Card>
-              <CardContent className="flex items-start gap-3 p-4">
-                <div className="mt-0.5 rounded-md bg-positive/10 p-2">
-                  <RefreshCw className="size-4 text-positive" />
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Strategy</span>
+                  <span className="font-medium capitalize">
+                    {vault.strategy === "dca" ? "Automatic DCA" : "Manual"}
+                  </span>
                 </div>
-                <div>
-                  <p className="text-sm font-semibold">Auto-Rebalance Active</p>
-                  <p className="text-xs text-muted-foreground">
-                    Every {vault.rebalanceDay} at {vault.rebalanceTime}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Next rebalance in 3 days
-                  </p>
+                {vault.dcaFrequency && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Frequency</span>
+                    <span className="font-medium capitalize">
+                      {vault.dcaFrequency}
+                    </span>
+                  </div>
+                )}
+                {vault.dcaAmount && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">DCA Amount</span>
+                    <span className="font-mono font-medium">
+                      ${vault.dcaAmount}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Owner</span>
+                  <span className="font-mono font-medium">
+                    {formatAddress(vault.owner)}
+                  </span>
+                </div>
+                {vault.smartAccountAddress && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Smart Account</span>
+                    <span className="font-mono font-medium">
+                      {formatAddress(vault.smartAccountAddress)}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Created</span>
+                  <span className="font-medium">
+                    {formatDate(vault.createdAt)}
+                  </span>
                 </div>
               </CardContent>
             </Card>
+          </div>
+
+          <div className="space-y-4">
+            {vault.smartAccountAddress && (
+              <>
+                <UsdcBalanceCard
+                  smartAccountAddress={vault.smartAccountAddress}
+                />
+                <BuyCard
+                  smartAccountAddress={vault.smartAccountAddress}
+                  compositions={compositions}
+                />
+              </>
+            )}
           </div>
         </div>
       </div>
