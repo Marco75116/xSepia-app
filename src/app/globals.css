@@ -51,40 +51,40 @@
 }
 
 :root {
-  --background: oklch(0.1 0.01 270);
-  --foreground: oklch(0.88 0.005 210);
-  --card: oklch(0.15 0.01 270);
-  --card-foreground: oklch(0.88 0.005 210);
-  --popover: oklch(0.15 0.01 270);
-  --popover-foreground: oklch(0.88 0.005 210);
-  --primary: oklch(0.75 0.18 160);
-  --primary-foreground: oklch(0.1 0.01 270);
-  --secondary: oklch(0.2 0.015 270);
-  --secondary-foreground: oklch(0.95 0 0);
-  --muted: oklch(0.2 0.015 270);
-  --muted-foreground: oklch(0.6 0.01 270);
-  --accent: oklch(0.2 0.02 270);
-  --accent-foreground: oklch(0.95 0 0);
-  --destructive: oklch(0.6 0.22 25);
-  --border: oklch(1 0 0 / 8%);
-  --input: oklch(1 0 0 / 10%);
-  --ring: oklch(0.75 0.18 160);
-  --chart-1: oklch(0.75 0.18 160);
-  --chart-2: oklch(0.65 0.2 250);
-  --chart-3: oklch(0.7 0.18 50);
-  --chart-4: oklch(0.65 0.2 320);
-  --chart-5: oklch(0.7 0.15 100);
-  --radius: 0.75rem;
-  --sidebar: oklch(0.12 0.01 270);
-  --sidebar-foreground: oklch(0.95 0 0);
-  --sidebar-primary: oklch(0.75 0.18 160);
-  --sidebar-primary-foreground: oklch(0.95 0 0);
-  --sidebar-accent: oklch(0.2 0.015 270);
-  --sidebar-accent-foreground: oklch(0.95 0 0);
-  --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: oklch(0.75 0.18 160);
-  --positive: oklch(0.75 0.18 160);
-  --positive-foreground: oklch(0.1 0.01 270);
+  --background: #0d0d0e;
+  --foreground: #e0e0e0;
+  --card: #141416;
+  --card-foreground: #e0e0e0;
+  --popover: #141416;
+  --popover-foreground: #e0e0e0;
+  --primary: #5ef5a0;
+  --primary-foreground: #0d0d0e;
+  --secondary: #1a1a1e;
+  --secondary-foreground: #e0e0e0;
+  --muted: #1a1a1e;
+  --muted-foreground: #6b6b6b;
+  --accent: #1e1e22;
+  --accent-foreground: #e0e0e0;
+  --destructive: #ef4444;
+  --border: #ffffff0a;
+  --input: #ffffff0d;
+  --ring: #5ef5a0;
+  --chart-1: #5ef5a0;
+  --chart-2: #5e9ff5;
+  --chart-3: #f5c05e;
+  --chart-4: #f55ea0;
+  --chart-5: #a05ef5;
+  --radius: 0.5rem;
+  --sidebar: #111113;
+  --sidebar-foreground: #e0e0e0;
+  --sidebar-primary: #5ef5a0;
+  --sidebar-primary-foreground: #e0e0e0;
+  --sidebar-accent: #1a1a1e;
+  --sidebar-accent-foreground: #e0e0e0;
+  --sidebar-border: #ffffff0a;
+  --sidebar-ring: #5ef5a0;
+  --positive: #5ef5a0;
+  --positive-foreground: #0d0d0e;
 }
 
 @layer base {
@@ -93,22 +93,6 @@
   }
   body {
     @apply bg-background text-foreground;
-    background-image:
-      radial-gradient(
-        ellipse 120% 60% at 50% -10%,
-        oklch(0.4 0.14 170 / 40%),
-        transparent 70%
-      ),
-      radial-gradient(
-        ellipse 80% 40% at 50% 0%,
-        oklch(0.55 0.16 165 / 20%),
-        transparent 60%
-      ),
-      radial-gradient(
-        ellipse 50% 30% at 50% 0%,
-        oklch(0.65 0.18 160 / 12%),
-        transparent 50%
-      );
     min-height: 100vh;
   }
   html {

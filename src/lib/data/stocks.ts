@@ -158,6 +158,18 @@ export const STOCKS: Stock[] = [
     sector: "Technology",
     logo: `${CDN_BASE}/684aaf9559b2312c162731f5_Ticker%3DTSLA%2C%20Company%20Name%3DTesla%20Inc.%2C%20size%3D256x256.svg`,
   },
+  {
+    ticker: "BTC",
+    name: "Bitcoin",
+    address: "0x0000000000000000000000000000000000000000",
+    price: 48200.0,
+    change24h: 1.85,
+    marketCap: "$940B",
+    volume24h: "$28.5B",
+    color: "#F7931A",
+    sector: "Crypto",
+    logo: "",
+  },
 ];
 
 export function getStockByTicker(ticker: string): Stock | undefined {
