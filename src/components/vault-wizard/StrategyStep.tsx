@@ -202,45 +202,59 @@ export function StrategyStep({
         </Button>
       </div>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Confirm Vault</DialogTitle>
-            <DialogDescription>
-              Review your vault configuration before creating it.
-            </DialogDescription>
-          </DialogHeader>
+      <Dialog
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          if (!creating) setDialogOpen(open);
+        }}
+      >
+        <DialogContent
+          className="sm:max-w-md"
+          onPointerDownOutside={(e) => {
+            if (creating) e.preventDefault();
+          }}
+          onEscapeKeyDown={(e) => {
+            if (creating) e.preventDefault();
+          }}
+        >
+          {creating ? (
+            <div className="flex flex-col items-center gap-4 py-10">
+              <Loader2 className="text-primary size-10 animate-spin" />
+              <div className="text-center">
+                <p className="font-semibold text-lg">Creating your vault</p>
+                <p className="text-muted-foreground text-sm">
+                  Deploying your smart account on-chain...
+                </p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle>Confirm Vault</DialogTitle>
+                <DialogDescription>
+                  Review your vault configuration before creating it.
+                </DialogDescription>
+              </DialogHeader>
 
-          <VaultReviewCard state={state} />
+              <VaultReviewCard state={state} />
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
+              {error && <p className="text-sm text-destructive">{error}</p>}
 
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDialogOpen(false)}
-              disabled={creating}
-            >
-              Back
-            </Button>
-            <Button
-              className="gap-2"
-              onClick={handleCreateVault}
-              disabled={creating || !isConnected}
-            >
-              {creating ? (
-                <>
-                  Creating...
-                  <Loader2 className="size-4 animate-spin" />
-                </>
-              ) : (
-                <>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                  Back
+                </Button>
+                <Button
+                  className="gap-2"
+                  onClick={handleCreateVault}
+                  disabled={!isConnected}
+                >
                   Create Vault
                   <Check className="size-4" />
-                </>
-              )}
-            </Button>
-          </DialogFooter>
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>
