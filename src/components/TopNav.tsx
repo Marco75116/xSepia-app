@@ -1,10 +1,10 @@
 "use client";
 
-import { Clock, Home, PlusCircle, Settings, Wallet } from "lucide-react";
+import { Clock, Home, PlusCircle, Settings } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { WalletButton } from "@/components/WalletButton";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
@@ -58,13 +58,7 @@ export function TopNav() {
           </nav>
 
           <div className="ml-4 flex items-center gap-3">
-            <Button
-              variant="outline"
-              className="gap-2 rounded-lg border-border px-4 py-2 text-sm font-medium"
-            >
-              <Wallet className="size-4" />
-              Connect Wallet
-            </Button>
+            <WalletButton />
           </div>
         </div>
       </div>
