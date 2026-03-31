@@ -2,12 +2,20 @@ import Link from "next/link";
 import { StockLogo } from "@/components/StockLogo";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import type { Vault } from "@/lib/data";
 import { getStockByTicker } from "@/lib/data";
 import { formatCurrency } from "@/lib/formatters";
 
-export function VaultCard({ vault }: { vault: Vault }) {
+type VaultSummary = {
+  id: string;
+  name: string;
+  strategy: string;
+  compositions: {
+    ticker: string;
+    weight: number;
+  }[];
+};
+
+export function VaultCard({ vault }: { vault: VaultSummary }) {
   return (
     <Link href={`/vault/${vault.id}`} className="h-full">
       <Card className="h-full transition-colors hover:bg-muted/50">
@@ -15,43 +23,53 @@ export function VaultCard({ vault }: { vault: Vault }) {
           <div className="flex items-start justify-between">
             <div>
               <h3 className="text-sm font-semibold">{vault.name}</h3>
-              <p className="text-xs text-muted-foreground">
-                {vault.labels[0]?.charAt(0).toUpperCase()}
-                {vault.labels[0]?.slice(1).toLowerCase()}
-              </p>
+              <Badge
+                variant="secondary"
+                className="mt-1 font-mono text-xs uppercase"
+              >
+                {vault.strategy}
+              </Badge>
             </div>
             <div className="flex items-center gap-1">
-              {vault.allocations.slice(0, 3).map((alloc) => {
-                const stock = getStockByTicker(alloc.ticker);
+              {vault.compositions.slice(0, 3).map((comp) => {
+                const stock = getStockByTicker(comp.ticker);
                 return (
                   <StockLogo
-                    key={alloc.ticker}
-                    ticker={alloc.ticker}
+                    key={comp.ticker}
+                    ticker={comp.ticker}
                     color={stock?.color ?? "#666"}
                     logo={stock?.logo}
                     size="sm"
                   />
                 );
               })}
+              {vault.compositions.length > 3 && (
+                <span className="ml-0.5 text-xs text-muted-foreground">
+                  +{vault.compositions.length - 3}
+                </span>
+              )}
             </div>
           </div>
 
           <div className="flex items-baseline justify-between">
-            <p className="font-mono text-xl font-bold">
-              {formatCurrency(vault.totalValue)}
-            </p>
-            <Badge
-              variant="secondary"
-              className="border-positive/20 bg-positive/10 font-mono text-positive"
-            >
-              +{vault.dailyGainPercent.toFixed(1)}%
-            </Badge>
+            <p className="font-mono text-xl font-bold">{formatCurrency(0)}</p>
           </div>
 
-          <Progress
-            value={Math.min(vault.dailyGainPercent * 10, 100)}
-            className="h-1"
-          />
+          <div className="flex h-1 gap-px overflow-hidden rounded-full">
+            {vault.compositions.map((comp) => {
+              const stock = getStockByTicker(comp.ticker);
+              return (
+                <div
+                  key={comp.ticker}
+                  className="h-full"
+                  style={{
+                    width: `${comp.weight}%`,
+                    backgroundColor: stock?.color ?? "#666",
+                  }}
+                />
+              );
+            })}
+          </div>
         </CardContent>
       </Card>
     </Link>
