@@ -1,8 +1,10 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, Hand, RefreshCw } from "lucide-react";
+import { Check, Hand, Loader2, RefreshCw } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useAccount } from "wagmi";
 import type { WizardAction, WizardState } from "@/app/(app)/vault/new/page";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +27,8 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { StrategyOptionCard } from "@/components/vault-wizard/StrategyOptionCard";
 import { VaultReviewCard } from "@/components/vault-wizard/VaultReviewCard";
+import { getStockByTicker } from "@/lib/data";
+import { api } from "@/lib/eden";
 
 const strategies = [
   {
@@ -49,11 +53,53 @@ export function StrategyStep({
   dispatch: React.Dispatch<WizardAction>;
 }) {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { address, isConnected } = useAccount();
+  const router = useRouter();
 
   const canCreate =
     state.strategy === "manual"
       ? state.vaultName.trim().length > 0
       : state.amount > 0 && state.vaultName.trim().length > 0;
+
+  async function handleCreateVault() {
+    if (!isConnected || !address) {
+      setError("Please connect your wallet first.");
+      return;
+    }
+
+    setCreating(true);
+    setError(null);
+
+    const allocations = state.selectedTickers
+      .filter((ticker) => (state.allocations[ticker] ?? 0) > 0)
+      .map((ticker) => {
+        const stock = getStockByTicker(ticker);
+        return {
+          ticker,
+          tokenAddress: stock?.address ?? "",
+          weight: state.allocations[ticker],
+        };
+      });
+
+    const { data, error: apiError } = await api.vault.post({
+      owner: address,
+      name: state.vaultName.trim(),
+      allocations,
+      strategy: state.strategy,
+      dcaFrequency: state.strategy === "dca" ? state.dcaFrequency : undefined,
+      dcaAmount: state.strategy === "dca" ? state.amount : undefined,
+    });
+
+    if (apiError) {
+      setError("Failed to create vault. Please try again.");
+      setCreating(false);
+      return;
+    }
+
+    router.push(`/vault/${data.vault.id}`);
+  }
 
   return (
     <div className="mx-auto max-w-lg space-y-6 px-4">
@@ -167,13 +213,32 @@ export function StrategyStep({
 
           <VaultReviewCard state={state} />
 
+          {error && <p className="text-sm text-destructive">{error}</p>}
+
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setDialogOpen(false)}
+              disabled={creating}
+            >
               Back
             </Button>
-            <Button className="gap-2">
-              Create Vault
-              <Check className="size-4" />
+            <Button
+              className="gap-2"
+              onClick={handleCreateVault}
+              disabled={creating || !isConnected}
+            >
+              {creating ? (
+                <>
+                  Creating...
+                  <Loader2 className="size-4 animate-spin" />
+                </>
+              ) : (
+                <>
+                  Create Vault
+                  <Check className="size-4" />
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
