@@ -7,12 +7,13 @@ export const publicClient = createPublicClient({
   transport: http(),
 });
 
-const operatorAccount = privateKeyToAccount(
-  process.env.OPERATOR_PRIVATE_KEY as `0x${string}`,
-);
-
-export const walletClient = createWalletClient({
-  account: operatorAccount,
-  chain: ink,
-  transport: http(),
-});
+export function getWalletClient() {
+  const operatorAccount = privateKeyToAccount(
+    process.env.OPERATOR_PRIVATE_KEY as `0x${string}`,
+  );
+  return createWalletClient({
+    account: operatorAccount,
+    chain: ink,
+    transport: http(),
+  });
+}
