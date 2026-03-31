@@ -29,6 +29,7 @@ PROFESSIONAL. CLEAN. MODERN.
 - **Web3 (frontend)**: Wagmi (wagmi.sh) for React hooks + wallet connection
 - **Web3 (backend)**: Viem for chain interactions, contract calls, encoding
 - **Smart Accounts**: ERC-4337, Uniswap pool interactions
+- **Backend**: ElysiaJS (embedded in Next.js API routes) + Eden Treaty (type-safe client)
 - **Deployment**: Vercel
 
 ## Package Manager
@@ -58,11 +59,19 @@ Always use `@/` alias. Never use relative paths like `../../`.
 ```
 src/
 ├── app/                            # Next.js App Router pages
+│   ├── api/
+│   │   └── [[...slugs]]/
+│   │       └── route.ts            # Elysia catch-all adapter
 │   ├── page.tsx                    # Landing page
 │   └── layout.tsx                  # Root layout
+├── server/
+│   ├── app.ts                      # Root Elysia instance + App type export
+│   └── routes/                     # Elysia route modules (one per domain)
+│       └── health.ts               # Health check route
 ├── components/
 │   └── ui/                         # shadcn/ui base components
 └── lib/
+    ├── eden.ts                     # Eden Treaty client singleton
     └── utils.ts                    # Utility functions (cn)
 ```
 
