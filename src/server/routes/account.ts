@@ -1,7 +1,7 @@
 import { Elysia, t } from "elysia";
 import { decodeEventLog, isAddress } from "viem";
 import { accountFactoryAbi } from "@/lib/abis/accountFactory";
-import { publicClient, walletClient } from "@/lib/viemClient";
+import { getWalletClient, publicClient } from "@/lib/viemClient";
 
 const ACCOUNT_FACTORY_ADDRESS =
   "0x52ce41F6B4e95b6891F93Ad85165b525412e1362" as const;
@@ -15,12 +15,18 @@ export const accountRoutes = new Elysia().post(
       throw new Error("Invalid owner address");
     }
 
-    const txHash = await walletClient.writeContract({
-      address: ACCOUNT_FACTORY_ADDRESS,
-      abi: accountFactoryAbi,
-      functionName: "createAccount",
-      args: [owner],
-    });
+    let txHash: `0x${string}`;
+    try {
+      txHash = await getWalletClient().writeContract({
+        address: ACCOUNT_FACTORY_ADDRESS,
+        abi: accountFactoryAbi,
+        functionName: "createAccount",
+        args: [owner],
+      });
+    } catch (err) {
+      console.error("[account] createAccount tx failed:", err);
+      throw new Error("Account creation transaction failed");
+    }
 
     const receipt = await publicClient.waitForTransactionReceipt({
       hash: txHash,
@@ -38,6 +44,10 @@ export const accountRoutes = new Elysia().post(
         topics: log.topics,
       });
       accountAddress = (decoded.args as { account: string }).account;
+    }
+
+    if (!accountAddress) {
+      console.error("[account] No AccountCreated event found in tx:", txHash);
     }
 
     return { txHash, accountAddress };
