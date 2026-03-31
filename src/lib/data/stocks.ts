@@ -1,0 +1,165 @@
+const CDN_BASE = "https://cdn.prod.website-files.com/655f3efc4be468487052e35a";
+
+export type Stock = {
+  ticker: string;
+  name: string;
+  address: `0x${string}`;
+  price: number;
+  change24h: number;
+  marketCap: string;
+  volume24h: string;
+  color: string;
+  sector: string;
+  logo: string;
+};
+
+export const STOCKS: Stock[] = [
+  {
+    ticker: "AAPLx",
+    name: "Apple",
+    address: "0x9d275685dc284c8eb1c79f6aba7a63dc75ec890a",
+    price: 228.52,
+    change24h: 1.24,
+    marketCap: "$3.45T",
+    volume24h: "$67.2M",
+    color: "#a3a3a3",
+    sector: "Technology",
+    logo: `${CDN_BASE}/6849799260ee65bf38841f90_Ticker%3DAAPL%2C%20Company%20Name%3DApple%20Inc.%2C%20size%3D256x256.svg`,
+  },
+  {
+    ticker: "AMZNx",
+    name: "Amazon",
+    address: "0x3557ba345b01efa20a1bddc61f573bfd87195081",
+    price: 186.41,
+    change24h: -0.83,
+    marketCap: "$1.96T",
+    volume24h: "$52.1M",
+    color: "#ff9900",
+    sector: "Technology",
+    logo: `${CDN_BASE}/68497d354d7140b01657a793_Ticker%3DAMZN%2C%20Company%20Name%3DAmazon.com%20Inc.%2C%20size%3D256x256.svg`,
+  },
+  {
+    ticker: "AZNx",
+    name: "AstraZeneca",
+    address: "0x5d642505fe1a28897eb3baba665f454755d8daa2",
+    price: 67.23,
+    change24h: 0.45,
+    marketCap: "$210B",
+    volume24h: "$8.4M",
+    color: "#830051",
+    sector: "Healthcare",
+    logo: `${CDN_BASE}/684bf47b066fa1085ae953e9_Ticker%3DAZN%2C%20Company%20Name%3Dastrazeneca%2C%20size%3D256x256.svg`,
+  },
+  {
+    ticker: "COINx",
+    name: "Coinbase",
+    address: "0x364f210f430ec2448fc68a49203040f6124096f0",
+    price: 211.78,
+    change24h: 3.67,
+    marketCap: "$53.2B",
+    volume24h: "$31.5M",
+    color: "#0052ff",
+    sector: "Finance",
+    logo: `${CDN_BASE}/684c131b2d6d8cbe9e61a3dc_Ticker%3DCOIN%2C%20Company%20Name%3DCoinbase%2C%20size%3D256x256.svg`,
+  },
+  {
+    ticker: "HOODx",
+    name: "Robinhood",
+    address: "0xe1385fdd5ffb10081cd52c56584f25efa9084015",
+    price: 46.32,
+    change24h: 2.15,
+    marketCap: "$39.8B",
+    volume24h: "$18.7M",
+    color: "#00c805",
+    sector: "Finance",
+    logo: `${CDN_BASE}/684c0f39cede10b9afa4852f_Ticker%3DHOOD%2C%20Company%20Name%3DRobinhood%2C%20size%3D256x256.svg`,
+  },
+  {
+    ticker: "MCDx",
+    name: "McDonald's",
+    address: "0x80a77a372c1e12accda84299492f404902e2da67",
+    price: 301.45,
+    change24h: -0.32,
+    marketCap: "$216B",
+    volume24h: "$5.2M",
+    color: "#da291c",
+    sector: "Consumer",
+    logo: `${CDN_BASE}/684bf77838b45bb94ff32be7_Ticker%3DMCD%2C%20Company%20Name%3DMcDonalds%2C%20size%3D256x256.svg`,
+  },
+  {
+    ticker: "METAx",
+    name: "Meta",
+    address: "0x96702be57cd9777f835117a809c7124fe4ec989a",
+    price: 582.16,
+    change24h: 1.89,
+    marketCap: "$1.47T",
+    volume24h: "$42.8M",
+    color: "#1877f2",
+    sector: "Technology",
+    logo: `${CDN_BASE}/68497dee3db1bae97b91ac05_Ticker%3DMETA%2C%20Company%20Name%3DMeta%20Platforms%20Inc.%2C%20size%3D256x256.svg`,
+  },
+  {
+    ticker: "MRKx",
+    name: "Merck",
+    address: "0x17d8186ed8f68059124190d147174d0f6697dc40",
+    price: 88.91,
+    change24h: -1.12,
+    marketCap: "$226B",
+    volume24h: "$9.1M",
+    color: "#009a9a",
+    sector: "Healthcare",
+    logo: `${CDN_BASE}/684be6ff5bd0a5643adf85ec_Ticker%3DMRK%2C%20Company%20Name%3DMerck%2C%20size%3D256x256.svg`,
+  },
+  {
+    ticker: "MSFTx",
+    name: "Microsoft",
+    address: "0x5621737f42dae558b81269fcb9e9e70c19aa6b35",
+    price: 414.23,
+    change24h: 0.76,
+    marketCap: "$3.08T",
+    volume24h: "$55.4M",
+    color: "#737373",
+    sector: "Technology",
+    logo: `${CDN_BASE}/68497bdc918924ea97fd8211_Ticker%3DMSFT%2C%20Company%20Name%3DMicrosoft%20Inc.%2C%20size%3D256x256.svg`,
+  },
+  {
+    ticker: "NFLXx",
+    name: "Netflix",
+    address: "0xa6a65ac27e76cd53cb790473e4345c46e5ebf961",
+    price: 891.34,
+    change24h: 2.41,
+    marketCap: "$385B",
+    volume24h: "$28.3M",
+    color: "#e50914",
+    sector: "Technology",
+    logo: `${CDN_BASE}/684bf6c149d917d503f6cda6_Ticker%3DNFLX%2C%20Company%20Name%3DNetflix%20Inc.%2C%20size%3D256x256.svg`,
+  },
+  {
+    ticker: "NVDAx",
+    name: "NVIDIA",
+    address: "0xc845b2894dbddd03858fd2d643b4ef725fe0849d",
+    price: 878.45,
+    change24h: 4.12,
+    marketCap: "$2.15T",
+    volume24h: "$98.7M",
+    color: "#76b900",
+    sector: "Technology",
+    logo: `${CDN_BASE}/684961bfb45e3c4d777b9997_Ticker%3DNVDA%2C%20Company%20Name%3DNVIDIA%20Corp%2C%20size%3D256x256.svg`,
+  },
+  {
+    ticker: "TSLAx",
+    name: "Tesla",
+    address: "0x8ad3c73f833d3f9a523ab01476625f269aeb7cf0",
+    price: 175.82,
+    change24h: -2.34,
+    marketCap: "$561B",
+    volume24h: "$72.1M",
+    color: "#cc0000",
+    sector: "Technology",
+    logo: `${CDN_BASE}/684aaf9559b2312c162731f5_Ticker%3DTSLA%2C%20Company%20Name%3DTesla%20Inc.%2C%20size%3D256x256.svg`,
+  },
+];
+
+export function getStockByTicker(ticker: string): Stock | undefined {
+  return STOCKS.find((s) => s.ticker === ticker);
+}
