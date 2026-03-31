@@ -1,10 +1,8 @@
 import { Elysia, t } from "elysia";
 import { decodeEventLog, isAddress } from "viem";
 import { accountFactoryAbi } from "@/lib/abis/accountFactory";
+import { ACCOUNT_FACTORY_ADDRESS } from "@/lib/constants";
 import { getWalletClient, publicClient } from "@/lib/viemClient";
-
-const ACCOUNT_FACTORY_ADDRESS =
-  "0x52ce41F6B4e95b6891F93Ad85165b525412e1362" as const;
 
 export const accountRoutes = new Elysia().post(
   "/account",

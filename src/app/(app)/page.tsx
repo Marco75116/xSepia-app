@@ -1,3 +1,4 @@
+import { Plus } from "lucide-react";
 import Link from "next/link";
 import { BalanceHeader } from "@/components/BalanceHeader";
 import { ContentLayout } from "@/components/ContentLayout";
@@ -26,8 +27,11 @@ export default function HomePage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold">Your Vaults</h2>
-            <Button variant="link" size="sm" asChild>
-              <Link href="/vault/new">+ New</Link>
+            <Button size="sm" className="gap-1.5" asChild>
+              <Link href="/vault/new">
+                <Plus className="size-4" />
+                Create Vault
+              </Link>
             </Button>
           </div>
 
