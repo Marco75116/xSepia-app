@@ -14,6 +14,11 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
+const CONNECTOR_ICONS: Record<string, string> = {
+  coinbaseWalletSDK:
+    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56' fill='none'%3E%3Crect width='56' height='56' rx='12' fill='%230052FF'/%3E%3Crect x='16' y='16' width='24' height='24' rx='4' fill='%23fff'/%3E%3C/svg%3E",
+};
+
 export function ConnectWalletDialog({
   open,
   onOpenChange,
@@ -47,6 +52,7 @@ export function ConnectWalletDialog({
                 ? (pendingConnector as { id: string }).id
                 : undefined;
             const isLoading = isPending && pendingId === connector.id;
+            const icon = connector.icon ?? CONNECTOR_ICONS[connector.id];
 
             return (
               <Button
@@ -59,9 +65,9 @@ export function ConnectWalletDialog({
                 disabled={isPending}
                 onClick={() => connect({ connector })}
               >
-                {connector.icon ? (
+                {icon ? (
                   <Image
-                    src={connector.icon}
+                    src={icon}
                     alt={connector.name}
                     width={24}
                     height={24}
