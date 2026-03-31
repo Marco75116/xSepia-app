@@ -3,10 +3,10 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
-const sizeMap = {
-  sm: "sm" as const,
-  md: "default" as const,
-  lg: "lg" as const,
+const sizeClasses = {
+  sm: "size-6",
+  md: "size-8",
+  lg: "size-10",
 };
 
 export function StockLogo({
@@ -21,7 +21,7 @@ export function StockLogo({
   size?: "sm" | "md" | "lg";
 }) {
   return (
-    <Avatar size={sizeMap[size]}>
+    <Avatar className={sizeClasses[size]}>
       {logo && <AvatarImage src={logo} alt={ticker} />}
       <AvatarFallback
         className={cn("text-white font-bold", {

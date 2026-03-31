@@ -8,7 +8,7 @@ import { formatCurrency } from "@/lib/formatters";
 export function VaultCard({ vault }: { vault: Vault }) {
   return (
     <Link href={`/vault/${vault.id}`}>
-      <Card className="border-border bg-card transition-colors hover:bg-accent">
+      <Card className="transition-colors hover:bg-accent">
         <CardContent className="space-y-2.5 p-4">
           <div className="flex items-start justify-between">
             <div>
@@ -38,14 +38,14 @@ export function VaultCard({ vault }: { vault: Vault }) {
             <p className="font-mono text-xl font-bold">
               {formatCurrency(vault.totalValue)}
             </p>
-            <span className="font-mono text-xs font-medium text-primary">
+            <span className="font-mono text-xs font-medium text-positive">
               +{vault.dailyGainPercent.toFixed(1)}%
             </span>
           </div>
 
           <div className="h-0.5 overflow-hidden rounded-full bg-muted">
             <div
-              className="h-full rounded-full bg-primary/60"
+              className="h-full rounded-full bg-positive/60"
               style={{
                 width: `${Math.min(vault.dailyGainPercent * 10, 100)}%`,
               }}

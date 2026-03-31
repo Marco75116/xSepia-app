@@ -1,12 +1,23 @@
-import { TopNav } from "@/components/TopNav";
+import { cookies } from "next/headers";
+import { AppSidebar } from "@/components/AppSidebar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+export default async function AppLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const cookieStore = await cookies();
+  const defaultOpen = cookieStore.get("sidebar_state")?.value !== "false";
+
   return (
-    <>
-      <TopNav />
-      <main className="mx-auto w-full max-w-7xl flex-1 px-12 py-8">
-        {children}
-      </main>
-    </>
+    <SidebarProvider defaultOpen={defaultOpen}>
+      <AppSidebar />
+      <SidebarInset className="bg-muted/50">
+        <div className="flex min-h-svh flex-col">
+          <div className="flex-1">{children}</div>
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

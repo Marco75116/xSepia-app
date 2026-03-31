@@ -23,7 +23,7 @@ PROFESSIONAL. CLEAN. MODERN.
 
 - **Framework**: Next.js 16 (App Router, React Server Components)
 - **Language**: TypeScript 5
-- **UI**: shadcn/ui (base-nova style, neutral base color) + Radix UI + Tailwind CSS 4
+- **UI**: shadcn/ui (default style, neutral base color, oklch colors) + Radix UI + Tailwind CSS 4
 - **Linter/Formatter**: Biome
 - **Git hooks**: Husky + lint-staged
 - **Web3 (frontend)**: Wagmi (wagmi.sh) for React hooks + wallet connection
@@ -62,15 +62,21 @@ src/
 │   ├── api/
 │   │   └── [[...slugs]]/
 │   │       └── route.ts            # Elysia catch-all adapter
-│   ├── page.tsx                    # Landing page
+│   ├── (app)/                      # Route group with sidebar layout
+│   │   ├── layout.tsx              # SidebarProvider + AppSidebar + SidebarInset
+│   │   └── page.tsx                # Home page
 │   └── layout.tsx                  # Root layout
 ├── server/
 │   ├── app.ts                      # Root Elysia instance + App type export
 │   └── routes/                     # Elysia route modules (one per domain)
 │       └── health.ts               # Health check route
 ├── components/
+│   ├── AppSidebar.tsx              # Sidebar navigation (collapsible)
+│   ├── Navbar.tsx                  # Top bar with SidebarTrigger + breadcrumbs
+│   ├── ContentLayout.tsx           # Wraps page content with Navbar
 │   └── ui/                         # shadcn/ui base components
 └── lib/
+    ├── menu-list.ts                # Sidebar navigation config
     ├── eden.ts                     # Eden Treaty client singleton
     └── utils.ts                    # Utility functions (cn)
 ```

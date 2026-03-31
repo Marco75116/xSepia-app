@@ -20,7 +20,7 @@ export function BalanceHeader({
           {formatCurrency(totalBalance)}
         </p>
         {dailyGainAmount !== 0 && (
-          <span className="rounded bg-primary/10 px-2.5 py-1 font-mono text-xs font-medium text-primary">
+          <span className="rounded bg-positive/10 px-2.5 py-1 font-mono text-xs font-medium text-positive">
             +{formatCurrency(dailyGainAmount)} · +{dailyGainPercent.toFixed(1)}%
             today
           </span>

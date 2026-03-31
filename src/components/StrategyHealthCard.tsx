@@ -7,7 +7,7 @@ export function StrategyHealthCard() {
       <p className="text-[10px] font-medium tracking-widest text-muted-foreground uppercase">
         Active Strategy
       </p>
-      <Card className="border-border bg-card">
+      <Card>
         <CardContent className="space-y-1.5 p-3.5">
           <p className="text-sm font-semibold leading-tight">
             Optimization running

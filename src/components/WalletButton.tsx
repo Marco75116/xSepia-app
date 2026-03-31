@@ -21,16 +21,14 @@ export function WalletButton() {
   if (isConnected && address) {
     return (
       <DropdownMenu>
-        <DropdownMenuTrigger
-          render={
-            <Button
-              variant="outline"
-              className="gap-2 rounded-lg border-border px-4 py-2 text-sm font-medium"
-            />
-          }
-        >
-          <Wallet className="size-4" />
-          {formatAddress(address)}
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            className="gap-2 rounded-lg border-border px-4 py-2 text-sm font-medium"
+          >
+            <Wallet className="size-4" />
+            {formatAddress(address)}
+          </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" sideOffset={8}>
           <DropdownMenuItem onClick={() => disconnect()}>
