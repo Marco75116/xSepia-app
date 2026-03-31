@@ -8,6 +8,28 @@ import { db } from "@/server/db";
 import { vaultCompositions, vaults } from "@/server/db/schema";
 
 export const vaultRoutes = new Elysia()
+  .get("/vaults", async () => {
+    const allVaults = await db.select().from(vaults);
+
+    const allCompositions = await db.select().from(vaultCompositions);
+
+    return allVaults.map((v) => ({
+      id: v.id,
+      name: v.name,
+      owner: v.owner,
+      smartAccountAddress: v.smartAccountAddress,
+      strategy: v.strategy,
+      dcaFrequency: v.dcaFrequency,
+      createdAt: v.createdAt.toISOString(),
+      compositions: allCompositions
+        .filter((c) => c.vaultId === v.id)
+        .map((c) => ({
+          ticker: c.ticker,
+          tokenAddress: c.tokenAddress,
+          weight: c.weight,
+        })),
+    }));
+  })
   .get(
     "/vault/:id",
     async ({ params }) => {
