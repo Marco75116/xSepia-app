@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar, Coins, Loader2, Plus, User, Vault } from "lucide-react";
+import { Calendar, Coins, Loader2, User, Vault } from "lucide-react";
 import { notFound } from "next/navigation";
 import { use, useEffect, useState } from "react";
 import { ContentLayout } from "@/components/ContentLayout";
@@ -13,6 +13,7 @@ import { BuyDialog } from "@/components/vault/BuyDialog";
 import { FundDialog } from "@/components/vault/FundDialog";
 import { HoldingsCard } from "@/components/vault/HoldingsCard";
 import { VaultHeader } from "@/components/vault/VaultHeader";
+import { WithdrawDialog } from "@/components/vault/WithdrawDialog";
 import { getStockByTicker } from "@/lib/data";
 import { api } from "@/lib/eden";
 import { formatDate } from "@/lib/formatters";
@@ -101,6 +102,13 @@ export default function VaultDetailPage({
           )}
           {vault.smartAccountAddress && (
             <BuyDialog
+              vaultId={vault.id}
+              smartAccountAddress={vault.smartAccountAddress}
+              compositions={compositions}
+            />
+          )}
+          {vault.smartAccountAddress && (
+            <WithdrawDialog
               vaultId={vault.id}
               smartAccountAddress={vault.smartAccountAddress}
               compositions={compositions}
