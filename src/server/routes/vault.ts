@@ -5,9 +5,77 @@ import { accountFactoryAbi } from "@/lib/abis/accountFactory";
 import { ACCOUNT_FACTORY_ADDRESS } from "@/lib/constants";
 import { getWalletClient, publicClient } from "@/lib/viemClient";
 import { db } from "@/server/db";
-import { buyOrders, vaultCompositions, vaults } from "@/server/db/schema";
+import {
+  buyOrders,
+  vaultCompositions,
+  vaults,
+  withdrawOrders,
+} from "@/server/db/schema";
 
 export const vaultRoutes = new Elysia()
+  .get("/orders", async () => {
+    const [buys, withdrawals] = await Promise.all([
+      db
+        .select({
+          id: buyOrders.id,
+          vaultId: buyOrders.vaultId,
+          ticker: buyOrders.ticker,
+          amount: buyOrders.sellAmountUsdc,
+          orderUid: buyOrders.orderUid,
+          status: buyOrders.status,
+          createdAt: buyOrders.createdAt,
+        })
+        .from(buyOrders)
+        .orderBy(desc(buyOrders.createdAt)),
+      db
+        .select({
+          id: withdrawOrders.id,
+          vaultId: withdrawOrders.vaultId,
+          ticker: withdrawOrders.ticker,
+          amount: withdrawOrders.amount,
+          txHash: withdrawOrders.txHash,
+          status: withdrawOrders.status,
+          createdAt: withdrawOrders.createdAt,
+        })
+        .from(withdrawOrders)
+        .orderBy(desc(withdrawOrders.createdAt)),
+    ]);
+
+    const allVaults = await db
+      .select({ id: vaults.id, name: vaults.name })
+      .from(vaults);
+    const vaultMap = new Map(allVaults.map((v) => [v.id, v.name]));
+
+    const unified = [
+      ...buys.map((o) => ({
+        id: o.id,
+        type: "buy" as const,
+        vaultName: vaultMap.get(o.vaultId) ?? "Unknown",
+        ticker: o.ticker,
+        amount: o.amount,
+        status: o.status,
+        orderUid: o.orderUid,
+        txHash: null as string | null,
+        createdAt: o.createdAt.toISOString(),
+      })),
+      ...withdrawals.map((o) => ({
+        id: o.id,
+        type: "withdraw" as const,
+        vaultName: vaultMap.get(o.vaultId) ?? "Unknown",
+        ticker: o.ticker,
+        amount: o.amount,
+        status: o.status,
+        orderUid: null as string | null,
+        txHash: o.txHash,
+        createdAt: o.createdAt.toISOString(),
+      })),
+    ].sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+
+    return unified;
+  })
   .get("/vaults", async () => {
     const allVaults = await db.select().from(vaults);
 
@@ -89,6 +157,31 @@ export const vaultRoutes = new Elysia()
         orderUid: o.orderUid,
         status: o.status,
         error: o.error,
+        createdAt: o.createdAt.toISOString(),
+      }));
+    },
+    {
+      params: t.Object({
+        id: t.String(),
+      }),
+    },
+  )
+  .get(
+    "/vault/:id/withdrawals",
+    async ({ params }) => {
+      const orders = await db
+        .select()
+        .from(withdrawOrders)
+        .where(eq(withdrawOrders.vaultId, params.id))
+        .orderBy(desc(withdrawOrders.createdAt));
+
+      return orders.map((o) => ({
+        id: o.id,
+        ticker: o.ticker,
+        tokenAddress: o.tokenAddress,
+        amount: o.amount,
+        txHash: o.txHash,
+        status: o.status,
         createdAt: o.createdAt.toISOString(),
       }));
     },

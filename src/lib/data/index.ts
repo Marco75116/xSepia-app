@@ -15,7 +15,6 @@ export {
   type PortfolioSnapshot,
 } from "./portfolio";
 export { getStockByTicker, STOCKS, type Stock } from "./stocks";
-export { TRANSACTIONS, type Transaction } from "./transactions";
 export {
   getVaultById,
   VAULTS,

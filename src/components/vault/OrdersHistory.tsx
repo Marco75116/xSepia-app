@@ -1,6 +1,13 @@
 "use client";
 
-import { AlertCircle, CheckCircle2, Clock, ExternalLink } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowDownLeft,
+  CheckCircle2,
+  Clock,
+  ExternalLink,
+  ShoppingCart,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { StockLogo } from "@/components/StockLogo";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +18,7 @@ import { getStockByTicker } from "@/lib/data";
 import { api } from "@/lib/eden";
 import { formatCurrency } from "@/lib/formatters";
 
-type Order = {
+type BuyOrder = {
   id: string;
   ticker: string;
   tokenAddress: string;
@@ -22,7 +29,28 @@ type Order = {
   createdAt: string;
 };
 
-const statusConfig = {
+type WithdrawOrder = {
+  id: string;
+  ticker: string;
+  tokenAddress: string;
+  amount: string;
+  txHash: string | null;
+  status: string;
+  createdAt: string;
+};
+
+type UnifiedOrder = {
+  id: string;
+  type: "buy" | "withdraw";
+  ticker: string;
+  amount: string;
+  status: string;
+  createdAt: string;
+  orderUid?: string | null;
+  txHash?: string | null;
+};
+
+const buyStatusConfig = {
   submitted: {
     label: "Submitted",
     icon: Clock,
@@ -30,6 +58,24 @@ const statusConfig = {
   },
   filled: {
     label: "Filled",
+    icon: CheckCircle2,
+    variant: "default" as const,
+  },
+  failed: {
+    label: "Failed",
+    icon: AlertCircle,
+    variant: "destructive" as const,
+  },
+};
+
+const withdrawStatusConfig = {
+  pending: {
+    label: "Pending",
+    icon: Clock,
+    variant: "secondary" as const,
+  },
+  confirmed: {
+    label: "Confirmed",
     icon: CheckCircle2,
     variant: "default" as const,
   },
@@ -50,15 +96,52 @@ function formatDateTime(date: string): string {
 }
 
 export function OrdersHistory({ vaultId }: { vaultId: string }) {
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<UnifiedOrder[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchOrders() {
-      const { data, error } = await api.vault({ id: vaultId }).orders.get();
-      if (!error && data) {
-        setOrders(data as Order[]);
+      const [buyResult, withdrawResult] = await Promise.all([
+        api.vault({ id: vaultId }).orders.get(),
+        api.vault({ id: vaultId }).withdrawals.get(),
+      ]);
+
+      const unified: UnifiedOrder[] = [];
+
+      if (!buyResult.error && buyResult.data) {
+        for (const o of buyResult.data as BuyOrder[]) {
+          unified.push({
+            id: o.id,
+            type: "buy",
+            ticker: o.ticker,
+            amount: o.sellAmountUsdc,
+            status: o.status,
+            createdAt: o.createdAt,
+            orderUid: o.orderUid,
+          });
+        }
       }
+
+      if (!withdrawResult.error && withdrawResult.data) {
+        for (const o of withdrawResult.data as WithdrawOrder[]) {
+          unified.push({
+            id: o.id,
+            type: "withdraw",
+            ticker: o.ticker,
+            amount: o.amount,
+            status: o.status,
+            createdAt: o.createdAt,
+            txHash: o.txHash,
+          });
+        }
+      }
+
+      unified.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+
+      setOrders(unified);
       setLoading(false);
     }
     fetchOrders();
@@ -102,10 +185,20 @@ export function OrdersHistory({ vaultId }: { vaultId: string }) {
       <CardContent className="px-0 pb-0">
         {orders.map((order, i) => {
           const stock = getStockByTicker(order.ticker);
+          const statusMap =
+            order.type === "buy" ? buyStatusConfig : withdrawStatusConfig;
           const config =
-            statusConfig[order.status as keyof typeof statusConfig] ??
-            statusConfig.submitted;
+            statusMap[order.status as keyof typeof statusMap] ??
+            buyStatusConfig.submitted;
           const StatusIcon = config.icon;
+          const TypeIcon = order.type === "buy" ? ShoppingCart : ArrowDownLeft;
+
+          const externalUrl =
+            order.type === "buy" && order.orderUid
+              ? `https://explorer.cow.fi/ink/orders/${order.orderUid}`
+              : order.type === "withdraw" && order.txHash
+                ? `https://explorer.inkonchain.com/tx/${order.txHash}`
+                : null;
 
           return (
             <div key={order.id}>
@@ -119,9 +212,12 @@ export function OrdersHistory({ vaultId }: { vaultId: string }) {
                     size="md"
                   />
                   <div>
-                    <p className="text-sm font-semibold">
-                      {stock?.name ?? order.ticker}
-                    </p>
+                    <div className="flex items-center gap-1.5">
+                      <TypeIcon className="size-3 text-muted-foreground" />
+                      <p className="text-sm font-semibold">
+                        {stock?.name ?? order.ticker}
+                      </p>
+                    </div>
                     <p className="text-xs text-muted-foreground">
                       {formatDateTime(order.createdAt)}
                     </p>
@@ -129,15 +225,17 @@ export function OrdersHistory({ vaultId }: { vaultId: string }) {
                 </div>
                 <div className="flex items-center gap-4">
                   <p className="font-mono text-sm font-medium">
-                    {formatCurrency(Number(order.sellAmountUsdc))}
+                    {order.type === "buy"
+                      ? formatCurrency(Number(order.amount))
+                      : order.amount}
                   </p>
                   <Badge variant={config.variant} className="gap-1">
                     <StatusIcon className="size-3" />
                     {config.label}
                   </Badge>
-                  {order.orderUid && (
+                  {externalUrl && (
                     <a
-                      href={`https://explorer.cow.fi/ink/orders/${order.orderUid}`}
+                      href={externalUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-muted-foreground hover:text-foreground"

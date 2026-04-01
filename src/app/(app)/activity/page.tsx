@@ -1,4 +1,17 @@
+"use client";
+
+import {
+  AlertCircle,
+  ArrowDownLeft,
+  CheckCircle2,
+  Clock,
+  ExternalLink,
+  Loader2,
+  ShoppingCart,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 import { ContentLayout } from "@/components/ContentLayout";
+import { StockLogo } from "@/components/StockLogo";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -8,77 +21,157 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { TRANSACTIONS } from "@/lib/data";
+import { getStockByTicker } from "@/lib/data";
+import { api } from "@/lib/eden";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 
-function StatusBadge({ status }: { status: string }) {
-  if (status === "completed") {
-    return (
-      <Badge
-        variant="secondary"
-        className="border-positive/20 bg-positive/10 text-positive"
-      >
-        Completed
-      </Badge>
-    );
+type Order = {
+  id: string;
+  type: "buy" | "withdraw";
+  vaultName: string;
+  ticker: string;
+  amount: string;
+  status: string;
+  orderUid: string | null;
+  txHash: string | null;
+  createdAt: string;
+};
+
+const statusConfig: Record<
+  string,
+  {
+    label: string;
+    icon: typeof Clock;
+    variant: "secondary" | "default" | "destructive";
   }
-  if (status === "pending") {
-    return <Badge variant="secondary">Pending</Badge>;
-  }
-  return <Badge variant="destructive">Failed</Badge>;
-}
+> = {
+  submitted: { label: "Submitted", icon: Clock, variant: "secondary" },
+  filled: { label: "Filled", icon: CheckCircle2, variant: "default" },
+  pending: { label: "Pending", icon: Clock, variant: "secondary" },
+  confirmed: { label: "Confirmed", icon: CheckCircle2, variant: "default" },
+  failed: { label: "Failed", icon: AlertCircle, variant: "destructive" },
+};
 
 export default function ActivityPage() {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchOrders() {
+      const { data, error } = await api.orders.get();
+      if (!error && data) {
+        setOrders(data as Order[]);
+      }
+      setLoading(false);
+    }
+    fetchOrders();
+  }, []);
+
   return (
     <ContentLayout>
       <div className="space-y-4">
         <h1 className="text-lg font-semibold">Activity</h1>
 
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Asset</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead className="text-right">Shares</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
-              <TableHead className="text-right">Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {TRANSACTIONS.map((tx) => (
-              <TableRow key={tx.id}>
-                <TableCell className="font-mono font-medium">
-                  {tx.ticker}
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant={tx.type === "buy" ? "secondary" : "destructive"}
-                    className={
-                      tx.type === "buy"
-                        ? "border-positive/20 bg-positive/10 text-positive"
-                        : undefined
-                    }
-                  >
-                    {tx.type.toUpperCase()}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {formatDate(tx.date)}
-                </TableCell>
-                <TableCell className="text-right font-mono text-muted-foreground">
-                  {tx.shares.toFixed(4)}
-                </TableCell>
-                <TableCell className="text-right font-mono font-medium">
-                  {formatCurrency(tx.amount)}
-                </TableCell>
-                <TableCell className="text-right">
-                  <StatusBadge status={tx.status} />
-                </TableCell>
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="size-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : orders.length === 0 ? (
+          <div className="flex items-center justify-center py-20 text-sm text-muted-foreground">
+            No activity yet
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Asset</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Vault</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
+                <TableHead className="text-right">Status</TableHead>
+                <TableHead className="w-10" />
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {orders.map((order) => {
+                const stock = getStockByTicker(order.ticker);
+                const config =
+                  statusConfig[order.status] ?? statusConfig.pending;
+                const StatusIcon = config.icon;
+                const TypeIcon =
+                  order.type === "buy" ? ShoppingCart : ArrowDownLeft;
+
+                const externalUrl =
+                  order.type === "buy" && order.orderUid
+                    ? `https://explorer.cow.fi/ink/orders/${order.orderUid}`
+                    : order.type === "withdraw" && order.txHash
+                      ? `https://explorer.inkonchain.com/tx/${order.txHash}`
+                      : null;
+
+                return (
+                  <TableRow key={order.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <StockLogo
+                          ticker={order.ticker}
+                          color={stock?.color ?? "#666"}
+                          logo={stock?.logo}
+                          size="sm"
+                        />
+                        <span className="font-mono font-medium">
+                          {order.ticker}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={order.type === "buy" ? "secondary" : "outline"}
+                        className={
+                          order.type === "buy"
+                            ? "gap-1 border-positive/20 bg-positive/10 text-positive"
+                            : "gap-1"
+                        }
+                      >
+                        <TypeIcon className="size-3" />
+                        {order.type === "buy" ? "Buy" : "Withdraw"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {order.vaultName}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {formatDate(order.createdAt)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono font-medium">
+                      {order.type === "buy"
+                        ? formatCurrency(Number(order.amount))
+                        : order.amount}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Badge variant={config.variant} className="gap-1">
+                        <StatusIcon className="size-3" />
+                        {config.label}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {externalUrl && (
+                        <a
+                          href={externalUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          <ExternalLink className="size-3.5" />
+                        </a>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        )}
       </div>
     </ContentLayout>
   );
