@@ -230,6 +230,7 @@ export default function VaultDetailPage({
           <div className="space-y-4">
             {vault.smartAccountAddress && (
               <BuyCard
+                vaultId={vault.id}
                 smartAccountAddress={vault.smartAccountAddress}
                 compositions={compositions}
               />
