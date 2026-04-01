@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Coins,
   Copy,
+  ExternalLink,
   Loader2,
   QrCode,
   SendHorizontal,
@@ -13,6 +14,7 @@ import {
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import {
   useAccount,
   useReadContract,
@@ -133,8 +135,24 @@ function WalletTransferView({
     if (isConfirmed) {
       setAmount("");
       refetchBalance();
+      toast.success("Vault funded successfully", {
+        action: txHash
+          ? {
+              label: (
+                <span className="inline-flex items-center gap-1">
+                  View on Explorer <ExternalLink className="size-3" />
+                </span>
+              ),
+              onClick: () =>
+                window.open(
+                  `https://explorer.inkonchain.com/tx/${txHash}`,
+                  "_blank",
+                ),
+            }
+          : undefined,
+      });
     }
-  }, [isConfirmed, refetchBalance]);
+  }, [isConfirmed, refetchBalance, txHash]);
 
   const formattedBalance =
     walletBalance !== undefined ? Number(walletBalance) / 1e6 : 0;
@@ -225,11 +243,6 @@ function WalletTransferView({
           {isSigning ? "Sign" : isConfirming ? "Confirming" : "Fund"}
         </Button>
       </div>
-      {isConfirmed && (
-        <p className="text-sm font-medium text-positive">
-          Vault funded successfully
-        </p>
-      )}
       {writeError && (
         <p className="text-sm font-medium text-destructive">
           {writeError.message.split("\n")[0]}

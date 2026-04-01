@@ -1,7 +1,14 @@
 "use client";
 
-import { ArrowDownToLine, Check, Loader2, Wallet } from "lucide-react";
+import {
+  ArrowDownToLine,
+  Check,
+  ExternalLink,
+  Loader2,
+  Wallet,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import {
   useAccount,
   useReadContracts,
@@ -80,7 +87,41 @@ function WithdrawRow({
       txHash,
       status: isReverted ? "failed" : "confirmed",
     });
-    if (isConfirmed) setAmount("");
+    if (isConfirmed) {
+      setAmount("");
+      const stock = getStockByTicker(comp.ticker);
+      toast.success(`${stock?.name ?? comp.ticker} withdrawal confirmed`, {
+        action: {
+          label: (
+            <span className="inline-flex items-center gap-1">
+              View on Explorer <ExternalLink className="size-3" />
+            </span>
+          ),
+          onClick: () =>
+            window.open(
+              `https://explorer.inkonchain.com/tx/${txHash}`,
+              "_blank",
+            ),
+        },
+      });
+    }
+    if (isReverted) {
+      toast.error("Transaction reverted on-chain", {
+        description: "Only the vault owner can withdraw.",
+        action: {
+          label: (
+            <span className="inline-flex items-center gap-1">
+              View on Explorer <ExternalLink className="size-3" />
+            </span>
+          ),
+          onClick: () =>
+            window.open(
+              `https://explorer.inkonchain.com/tx/${txHash}`,
+              "_blank",
+            ),
+        },
+      });
+    }
   }, [
     receiptFetched,
     txHash,
@@ -191,16 +232,6 @@ function WithdrawRow({
       {writeError && (
         <p className="text-xs font-medium text-destructive">
           {writeError.message.split("\n")[0]}
-        </p>
-      )}
-      {isReverted && (
-        <p className="text-xs font-medium text-destructive">
-          Transaction reverted on-chain. Only the vault owner can withdraw.
-        </p>
-      )}
-      {isConfirmed && (
-        <p className="text-xs font-medium text-positive">
-          Withdrawal confirmed
         </p>
       )}
     </div>
