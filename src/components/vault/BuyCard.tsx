@@ -1,10 +1,11 @@
 "use client";
 
-import { Loader2, ShoppingCart } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { BuyConfirmDialog } from "@/components/vault/BuyConfirmDialog";
 import { api } from "@/lib/eden";
 
 type Composition = {
@@ -14,14 +15,17 @@ type Composition = {
 };
 
 export function BuyCard({
+  vaultId,
   smartAccountAddress,
   compositions,
 }: {
+  vaultId: string;
   smartAccountAddress: string;
   compositions: Composition[];
 }) {
   const [amount, setAmount] = useState("");
   const [buying, setBuying] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [result, setResult] = useState<{
     type: "success" | "error";
     message: string;
@@ -30,36 +34,63 @@ export function BuyCard({
   const parsedAmount = Number.parseFloat(amount);
   const isValid = !Number.isNaN(parsedAmount) && parsedAmount >= 10;
 
-  async function handleBuy() {
+  function handleBuyClick() {
     if (!isValid) return;
-
-    setBuying(true);
     setResult(null);
+    setConfirmOpen(true);
+  }
+
+  async function handleConfirm() {
+    setBuying(true);
 
     const totalUsdc = parsedAmount * 1e6;
-    let successCount = 0;
 
-    for (const comp of compositions) {
-      const sellAmount = Math.floor((totalUsdc * comp.weight) / 100);
-      if (sellAmount < 10_000_000) continue;
-
-      const { error } = await api.swap.post({
-        userAccountAddress: smartAccountAddress,
+    const orders = compositions
+      .map((comp) => ({
         buyToken: comp.tokenAddress,
-        sellAmount: String(sellAmount),
-      });
+        sellAmount: String(Math.floor((totalUsdc * comp.weight) / 100)),
+      }))
+      .filter((o) => BigInt(o.sellAmount) >= BigInt(10_000_000));
 
-      if (!error) {
-        successCount++;
-      }
+    if (orders.length === 0) {
+      setBuying(false);
+      setResult({
+        type: "error",
+        message: "All allocations are below $10 minimum.",
+      });
+      return;
     }
 
-    setBuying(false);
+    const { data, error } = await api.swap.post({
+      userAccountAddress: smartAccountAddress,
+      vaultId,
+      orders,
+    });
 
-    if (successCount > 0) {
+    setBuying(false);
+    setConfirmOpen(false);
+
+    if (error) {
+      setResult({
+        type: "error",
+        message: "Failed to submit orders. Check balance and try again.",
+      });
+      return;
+    }
+
+    const successCount = data.results.filter((r) => r.orderUid).length;
+    const failCount = data.results.filter((r) => r.error).length;
+
+    if (successCount > 0 && failCount === 0) {
       setResult({
         type: "success",
         message: `${successCount} order${successCount > 1 ? "s" : ""} submitted`,
+      });
+      setAmount("");
+    } else if (successCount > 0) {
+      setResult({
+        type: "success",
+        message: `${successCount} submitted, ${failCount} failed`,
       });
       setAmount("");
     } else {
@@ -71,50 +102,57 @@ export function BuyCard({
   }
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          Buy
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="flex gap-2">
-          <Input
-            type="text"
-            inputMode="decimal"
-            placeholder="USDC amount"
-            value={amount}
-            onChange={(e) => {
-              setAmount(e.target.value.replace(/[^0-9.]/g, ""));
-              setResult(null);
-            }}
-            className="font-mono focus-visible:ring-0 focus-visible:ring-offset-0"
-            disabled={buying}
-          />
-          <Button
-            className="gap-1.5 shrink-0"
-            disabled={!isValid || buying}
-            onClick={handleBuy}
-          >
-            {buying ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <ShoppingCart className="size-4" />
-            )}
+    <>
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">
             Buy
-          </Button>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Min. $10 USDC. Split across holdings by weight.
-        </p>
-        {result && (
-          <p
-            className={`text-sm font-medium ${result.type === "success" ? "text-positive" : "text-destructive"}`}
-          >
-            {result.message}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex gap-2">
+            <Input
+              type="text"
+              inputMode="decimal"
+              placeholder="USDC amount"
+              value={amount}
+              onChange={(e) => {
+                setAmount(e.target.value.replace(/[^0-9.]/g, ""));
+                setResult(null);
+              }}
+              className="font-mono focus-visible:ring-0 focus-visible:ring-offset-0"
+              disabled={buying}
+            />
+            <Button
+              className="gap-1.5 shrink-0"
+              disabled={!isValid || buying}
+              onClick={handleBuyClick}
+            >
+              <ShoppingCart className="size-4" />
+              Buy
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Min. $10 USDC. Split across holdings by weight.
           </p>
-        )}
-      </CardContent>
-    </Card>
+          {result && (
+            <p
+              className={`text-sm font-medium ${result.type === "success" ? "text-positive" : "text-destructive"}`}
+            >
+              {result.message}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      <BuyConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        amount={parsedAmount || 0}
+        compositions={compositions}
+        buying={buying}
+        onConfirm={handleConfirm}
+      />
+    </>
   );
 }

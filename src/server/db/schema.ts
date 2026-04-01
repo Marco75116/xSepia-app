@@ -1,3 +1,4 @@
+import { relations } from "drizzle-orm";
 import {
   integer,
   numeric,
@@ -31,3 +32,41 @@ export const vaultCompositions = pgTable("vault_compositions", {
   weight: integer("weight").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const buyOrders = pgTable("buy_orders", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  vaultId: uuid("vault_id")
+    .notNull()
+    .references(() => vaults.id, { onDelete: "cascade" }),
+  ticker: text("ticker").notNull(),
+  tokenAddress: text("token_address").notNull(),
+  sellAmountUsdc: numeric("sell_amount_usdc").notNull(),
+  orderUid: text("order_uid"),
+  status: text("status", {
+    enum: ["submitted", "filled", "failed"],
+  }).notNull(),
+  error: text("error"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const vaultsRelations = relations(vaults, ({ many }) => ({
+  compositions: many(vaultCompositions),
+  buyOrders: many(buyOrders),
+}));
+
+export const vaultCompositionsRelations = relations(
+  vaultCompositions,
+  ({ one }) => ({
+    vault: one(vaults, {
+      fields: [vaultCompositions.vaultId],
+      references: [vaults.id],
+    }),
+  }),
+);
+
+export const buyOrdersRelations = relations(buyOrders, ({ one }) => ({
+  vault: one(vaults, {
+    fields: [buyOrders.vaultId],
+    references: [vaults.id],
+  }),
+}));
