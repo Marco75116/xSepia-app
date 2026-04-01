@@ -1,7 +1,8 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
+import { Loader2, WalletCards } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useAccount } from "wagmi";
 import { BalanceHeader } from "@/components/BalanceHeader";
 import { ContentLayout } from "@/components/ContentLayout";
 import { CreateVaultCard } from "@/components/CreateVaultCard";
@@ -24,12 +25,21 @@ type VaultSummary = {
 };
 
 export default function HomePage() {
+  const { address, isConnected } = useAccount();
   const [vaults, setVaults] = useState<VaultSummary[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (!isConnected || !address) {
+      setVaults([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+
     async function fetchVaults() {
-      const { data } = await api.vaults.get();
+      const { data } = await api.vaults.get({ query: { owner: address! } });
       if (data) {
         setVaults(data as VaultSummary[]);
       }
@@ -37,7 +47,7 @@ export default function HomePage() {
     }
 
     fetchVaults();
-  }, []);
+  }, [address, isConnected]);
 
   return (
     <ContentLayout>
@@ -51,7 +61,12 @@ export default function HomePage() {
         <div className="space-y-4">
           <h2 className="text-sm font-semibold">Your Vaults</h2>
 
-          {loading ? (
+          {!isConnected ? (
+            <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed py-12 text-muted-foreground">
+              <WalletCards className="size-8" />
+              <p className="text-sm">Connect your wallet to view your vaults</p>
+            </div>
+          ) : loading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="size-5 animate-spin text-muted-foreground" />
             </div>

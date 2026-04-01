@@ -8,28 +8,39 @@ import { db } from "@/server/db";
 import { buyOrders, vaultCompositions, vaults } from "@/server/db/schema";
 
 export const vaultRoutes = new Elysia()
-  .get("/vaults", async () => {
-    const allVaults = await db.select().from(vaults);
+  .get(
+    "/vaults",
+    async ({ query }) => {
+      const ownerVaults = await db
+        .select()
+        .from(vaults)
+        .where(eq(vaults.owner, query.owner));
 
-    const allCompositions = await db.select().from(vaultCompositions);
+      const allCompositions = await db.select().from(vaultCompositions);
 
-    return allVaults.map((v) => ({
-      id: v.id,
-      name: v.name,
-      owner: v.owner,
-      smartAccountAddress: v.smartAccountAddress,
-      strategy: v.strategy,
-      dcaFrequency: v.dcaFrequency,
-      createdAt: v.createdAt.toISOString(),
-      compositions: allCompositions
-        .filter((c) => c.vaultId === v.id)
-        .map((c) => ({
-          ticker: c.ticker,
-          tokenAddress: c.tokenAddress,
-          weight: c.weight,
-        })),
-    }));
-  })
+      return ownerVaults.map((v) => ({
+        id: v.id,
+        name: v.name,
+        owner: v.owner,
+        smartAccountAddress: v.smartAccountAddress,
+        strategy: v.strategy,
+        dcaFrequency: v.dcaFrequency,
+        createdAt: v.createdAt.toISOString(),
+        compositions: allCompositions
+          .filter((c) => c.vaultId === v.id)
+          .map((c) => ({
+            ticker: c.ticker,
+            tokenAddress: c.tokenAddress,
+            weight: c.weight,
+          })),
+      }));
+    },
+    {
+      query: t.Object({
+        owner: t.String(),
+      }),
+    },
+  )
   .get(
     "/vault/:id",
     async ({ params }) => {
