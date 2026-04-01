@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/chart";
 import { Skeleton } from "@/components/ui/skeleton";
 import { erc20Abi } from "@/lib/abis/erc20";
-import { INK_CHAIN_ID, USDC_ADDRESS } from "@/lib/constants";
+import { getChainConfig } from "@/lib/constants";
 import { getStockByTicker } from "@/lib/data";
 import { formatCompactCurrency, formatCurrency } from "@/lib/formatters";
 
@@ -25,26 +25,29 @@ type Composition = {
 export function VaultValueChart({
   smartAccountAddress,
   compositions,
+  chainId,
 }: {
   smartAccountAddress: string;
   compositions: Composition[];
+  chainId: number;
 }) {
+  const chainConfig = getChainConfig(chainId);
   const account = smartAccountAddress as `0x${string}`;
 
   const contracts = [
     {
-      address: USDC_ADDRESS,
+      address: chainConfig.usdc,
       abi: erc20Abi,
       functionName: "balanceOf" as const,
       args: [account],
-      chainId: INK_CHAIN_ID,
+      chainId: chainConfig.chainId,
     },
     ...compositions.map((comp) => ({
       address: comp.tokenAddress as `0x${string}`,
       abi: erc20Abi,
       functionName: "balanceOf" as const,
       args: [account],
-      chainId: INK_CHAIN_ID,
+      chainId: chainConfig.chainId,
     })),
   ];
 

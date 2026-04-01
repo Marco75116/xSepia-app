@@ -30,7 +30,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { erc20Abi } from "@/lib/abis/erc20";
 import { userAccountAbi } from "@/lib/abis/userAccount";
-import { INK_CHAIN_ID } from "@/lib/constants";
+import { getChainConfig } from "@/lib/constants";
 import { getStockByTicker } from "@/lib/data";
 import { api } from "@/lib/eden";
 
@@ -45,12 +45,15 @@ function WithdrawRow({
   balance,
   smartAccountAddress,
   vaultId,
+  chainId,
 }: {
   comp: Composition;
   balance: number;
   smartAccountAddress: string;
   vaultId: string;
+  chainId: number;
 }) {
+  const chainConfig = getChainConfig(chainId);
   const stock = getStockByTicker(comp.ticker);
   const { address: connectedAddress } = useAccount();
   const [amount, setAmount] = useState("");
@@ -71,7 +74,7 @@ function WithdrawRow({
     isSuccess: receiptFetched,
   } = useWaitForTransactionReceipt({
     hash: txHash,
-    chainId: INK_CHAIN_ID,
+    chainId: chainConfig.chainId,
     query: { enabled: !!txHash },
   });
 
@@ -99,10 +102,7 @@ function WithdrawRow({
             </span>
           ),
           onClick: () =>
-            window.open(
-              `https://explorer.inkonchain.com/tx/${txHash}`,
-              "_blank",
-            ),
+            window.open(`${chainConfig.explorerUrl}/tx/${txHash}`, "_blank"),
         },
       });
     }
@@ -116,10 +116,7 @@ function WithdrawRow({
             </span>
           ),
           onClick: () =>
-            window.open(
-              `https://explorer.inkonchain.com/tx/${txHash}`,
-              "_blank",
-            ),
+            window.open(`${chainConfig.explorerUrl}/tx/${txHash}`, "_blank"),
         },
       });
     }
@@ -131,6 +128,7 @@ function WithdrawRow({
     comp.tokenAddress,
     isReverted,
     isConfirmed,
+    chainConfig.explorerUrl,
   ]);
 
   const parsedAmount = Number.parseFloat(amount);
@@ -150,7 +148,7 @@ function WithdrawRow({
       abi: userAccountAbi,
       functionName: "withdraw",
       args: [comp.tokenAddress as `0x${string}`, parsedRaw, connectedAddress!],
-      chainId: INK_CHAIN_ID,
+      chainId: chainConfig.chainId,
     });
   }
 
@@ -243,14 +241,17 @@ export function WithdrawDialog({
   vaultId,
   smartAccountAddress,
   compositions,
+  chainId,
 }: {
   vaultId: string;
   smartAccountAddress: string;
   compositions: Composition[];
+  chainId: number;
 }) {
   const [open, setOpen] = useState(false);
   const [connectOpen, setConnectOpen] = useState(false);
   const { isConnected } = useAccount();
+  const chainConfig = getChainConfig(chainId);
 
   const account = smartAccountAddress as `0x${string}`;
 
@@ -259,7 +260,7 @@ export function WithdrawDialog({
     abi: erc20Abi,
     functionName: "balanceOf" as const,
     args: [account],
-    chainId: INK_CHAIN_ID,
+    chainId: chainConfig.chainId,
   }));
 
   const { data } = useReadContracts({
@@ -315,6 +316,7 @@ export function WithdrawDialog({
                     balance={balance}
                     smartAccountAddress={smartAccountAddress}
                     vaultId={vaultId}
+                    chainId={chainId}
                   />
                 </div>
               );

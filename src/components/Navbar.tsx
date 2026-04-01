@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React from "react";
+import { ChainSwitcher } from "@/components/ChainSwitcher";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -48,6 +49,9 @@ export function Navbar() {
           })}
         </BreadcrumbList>
       </Breadcrumb>
+      <div className="ml-auto">
+        <ChainSwitcher />
+      </div>
     </header>
   );
 }

@@ -27,6 +27,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { StrategyOptionCard } from "@/components/vault-wizard/StrategyOptionCard";
 import { VaultReviewCard } from "@/components/vault-wizard/VaultReviewCard";
+import { useChain } from "@/lib/chain-context";
 import { getStockByTicker } from "@/lib/data";
 import { api } from "@/lib/eden";
 
@@ -56,6 +57,7 @@ export function StrategyStep({
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { address, isConnected } = useAccount();
+  const { chainId } = useChain();
   const router = useRouter();
 
   const canCreate =
@@ -86,6 +88,7 @@ export function StrategyStep({
     const { data, error: apiError } = await api.vault.post({
       owner: address,
       name: state.vaultName.trim(),
+      chainId,
       allocations,
       strategy: state.strategy,
       dcaFrequency: state.strategy === "dca" ? state.dcaFrequency : undefined,

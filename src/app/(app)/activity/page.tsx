@@ -21,6 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { getChainConfig } from "@/lib/constants";
 import { getStockByTicker } from "@/lib/data";
 import { api } from "@/lib/eden";
 import { formatCurrency, formatDate } from "@/lib/formatters";
@@ -29,6 +30,7 @@ type Order = {
   id: string;
   type: "buy" | "withdraw";
   vaultName: string;
+  chainId: number;
   ticker: string;
   amount: string;
   status: string;
@@ -51,6 +53,23 @@ const statusConfig: Record<
   confirmed: { label: "Confirmed", icon: CheckCircle2, variant: "default" },
   failed: { label: "Failed", icon: AlertCircle, variant: "destructive" },
 };
+
+function getOrderExplorerUrl(order: Order): string | null {
+  const chainConfig = getChainConfig(order.chainId);
+
+  if (order.type === "buy" && order.orderUid) {
+    if (chainConfig.swapProtocol === "cow") {
+      return `https://explorer.cow.fi/ink/orders/${order.orderUid}`;
+    }
+    return `${chainConfig.explorerUrl}/tx/${order.orderUid}`;
+  }
+
+  if (order.type === "withdraw" && order.txHash) {
+    return `${chainConfig.explorerUrl}/tx/${order.txHash}`;
+  }
+
+  return null;
+}
 
 export default function ActivityPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -102,12 +121,7 @@ export default function ActivityPage() {
                 const TypeIcon =
                   order.type === "buy" ? ShoppingCart : ArrowDownLeft;
 
-                const externalUrl =
-                  order.type === "buy" && order.orderUid
-                    ? `https://explorer.cow.fi/ink/orders/${order.orderUid}`
-                    : order.type === "withdraw" && order.txHash
-                      ? `https://explorer.inkonchain.com/tx/${order.txHash}`
-                      : null;
+                const externalUrl = getOrderExplorerUrl(order);
 
                 return (
                   <TableRow key={order.id}>

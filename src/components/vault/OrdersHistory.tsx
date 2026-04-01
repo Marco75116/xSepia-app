@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getChainConfig } from "@/lib/constants";
 import { getStockByTicker } from "@/lib/data";
 import { api } from "@/lib/eden";
 import { formatCurrency } from "@/lib/formatters";
@@ -88,7 +89,33 @@ function formatDateTime(date: string): string {
   }).format(new Date(date));
 }
 
-export function OrdersHistory({ vaultId }: { vaultId: string }) {
+function getOrderExplorerUrl(
+  order: UnifiedOrder,
+  chainId: number,
+): string | null {
+  const chainConfig = getChainConfig(chainId);
+
+  if (order.type === "buy" && order.orderUid) {
+    if (chainConfig.swapProtocol === "cow") {
+      return `https://explorer.cow.fi/ink/orders/${order.orderUid}`;
+    }
+    return `${chainConfig.explorerUrl}/tx/${order.orderUid}`;
+  }
+
+  if (order.type === "withdraw" && order.txHash) {
+    return `${chainConfig.explorerUrl}/tx/${order.txHash}`;
+  }
+
+  return null;
+}
+
+export function OrdersHistory({
+  vaultId,
+  chainId,
+}: {
+  vaultId: string;
+  chainId: number;
+}) {
   const [orders, setOrders] = useState<UnifiedOrder[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -185,12 +212,7 @@ export function OrdersHistory({ vaultId }: { vaultId: string }) {
             buyStatusConfig.submitted;
           const StatusIcon = config.icon;
 
-          const externalUrl =
-            order.type === "buy" && order.orderUid
-              ? `https://explorer.cow.fi/ink/orders/${order.orderUid}`
-              : order.type === "withdraw" && order.txHash
-                ? `https://explorer.inkonchain.com/tx/${order.txHash}`
-                : null;
+          const externalUrl = getOrderExplorerUrl(order, chainId);
 
           return (
             <div key={order.id}>

@@ -1,8 +1,8 @@
 import { encodeAbiParameters } from "viem";
 import {
-  COW_RELAYER_ADDRESS,
+  getChainConfig,
   OPERATOR_ADDRESS,
-  USDC_ADDRESS,
+  type SupportedChainId,
 } from "@/lib/constants";
 
 const BLOCKSCOUT_URL = "https://explorer.inkonchain.com";
@@ -956,20 +956,10 @@ const STANDARD_INPUT = {
   },
 };
 
-export async function verifyUserAccount(
+async function verifyOnBlockscout(
   contractAddress: string,
-  ownerAddress: `0x${string}`,
+  constructorArgs: string,
 ): Promise<{ success: boolean; message: string }> {
-  const constructorArgs = encodeAbiParameters(
-    [
-      { type: "address" },
-      { type: "address" },
-      { type: "address" },
-      { type: "address" },
-    ],
-    [ownerAddress, OPERATOR_ADDRESS, USDC_ADDRESS, COW_RELAYER_ADDRESS],
-  ).slice(2);
-
   const res = await fetch(
     `${BLOCKSCOUT_URL}/api?module=contract&action=verifysourcecode`,
     {
@@ -993,4 +983,65 @@ export async function verifyUserAccount(
   }
 
   return { success: false, message: data.result };
+}
+
+const ETHERSCAN_API_URL = "https://api.etherscan.io/api";
+
+async function verifyOnEtherscan(
+  contractAddress: string,
+  constructorArgs: string,
+): Promise<{ success: boolean; message: string }> {
+  const apiKey = process.env.ETHERSCAN_API_KEY;
+  if (!apiKey) {
+    return { success: false, message: "ETHERSCAN_API_KEY not configured" };
+  }
+
+  const res = await fetch(ETHERSCAN_API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      apikey: apiKey,
+      module: "contract",
+      action: "verifysourcecode",
+      contractaddress: contractAddress,
+      sourceCode: JSON.stringify(STANDARD_INPUT),
+      codeformat: "solidity-standard-json-input",
+      contractname: "src/UserAccount.sol:UserAccount",
+      compilerversion: COMPILER_VERSION,
+      constructorArguements: constructorArgs,
+      evmversion: "prague",
+    }),
+  });
+
+  const data = (await res.json()) as { status: string; result: string };
+
+  if (data.status === "1") {
+    return { success: true, message: data.result };
+  }
+
+  return { success: false, message: data.result };
+}
+
+export async function verifyUserAccount(
+  contractAddress: string,
+  ownerAddress: `0x${string}`,
+  chainId: SupportedChainId = 57073,
+): Promise<{ success: boolean; message: string }> {
+  const chainConfig = getChainConfig(chainId);
+
+  const constructorArgs = encodeAbiParameters(
+    [
+      { type: "address" },
+      { type: "address" },
+      { type: "address" },
+      { type: "address" },
+    ],
+    [ownerAddress, OPERATOR_ADDRESS, chainConfig.usdc, chainConfig.swapRelayer],
+  ).slice(2);
+
+  if (chainId === 1) {
+    return verifyOnEtherscan(contractAddress, constructorArgs);
+  }
+
+  return verifyOnBlockscout(contractAddress, constructorArgs);
 }

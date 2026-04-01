@@ -19,10 +19,12 @@ export function BuyCard({
   vaultId,
   smartAccountAddress,
   compositions,
+  chainId,
 }: {
   vaultId: string;
   smartAccountAddress: string;
   compositions: Composition[];
+  chainId: number;
 }) {
   const [amount, setAmount] = useState("");
   const [buying, setBuying] = useState(false);
@@ -57,6 +59,7 @@ export function BuyCard({
     const { data, error } = await api.swap.post({
       userAccountAddress: smartAccountAddress,
       vaultId,
+      chainId,
       orders,
     });
 
