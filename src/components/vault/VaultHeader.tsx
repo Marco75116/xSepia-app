@@ -4,6 +4,7 @@ import { CircleDollarSign, Layers, TrendingUp, Wallet } from "lucide-react";
 import { useReadContracts } from "wagmi";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FundDialog } from "@/components/vault/FundDialog";
 import { erc20Abi } from "@/lib/abis/erc20";
 import { INK_CHAIN_ID, USDC_ADDRESS } from "@/lib/constants";
 import { getStockByTicker } from "@/lib/data";
@@ -113,9 +114,12 @@ export function VaultHeader({
           {isLoading ? (
             <Skeleton className="mt-0.5 h-5 w-20" />
           ) : (
-            <p className="font-mono text-sm font-semibold">
-              {formatCurrency(usdcBalance)}
-            </p>
+            <div className="flex items-center gap-1.5">
+              <p className="font-mono text-sm font-semibold">
+                {formatCurrency(usdcBalance)}
+              </p>
+              <FundDialog smartAccountAddress={smartAccountAddress} />
+            </div>
           )}
         </StatCard>
 
