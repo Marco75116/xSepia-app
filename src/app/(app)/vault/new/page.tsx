@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useReducer } from "react";
+import { ConnectGuard } from "@/components/ConnectGuard";
 import { ContentLayout } from "@/components/ContentLayout";
 import { AllocationStep } from "@/components/vault-wizard/AllocationStep";
 import { StockSelectionStep } from "@/components/vault-wizard/StockSelectionStep";
@@ -150,36 +151,38 @@ export default function NewVaultPage() {
   const [state, dispatch] = useReducer(wizardReducer, initialState);
 
   return (
-    <ContentLayout>
-      <div className="space-y-6">
-        <WizardHeader
-          currentStep={state.currentStep}
-          onBack={() => dispatch({ type: "PREV_STEP" })}
-          onGoToStep={(step) => dispatch({ type: "GO_TO_STEP", step })}
-        />
+    <ConnectGuard>
+      <ContentLayout>
+        <div className="space-y-6">
+          <WizardHeader
+            currentStep={state.currentStep}
+            onBack={() => dispatch({ type: "PREV_STEP" })}
+            onGoToStep={(step) => dispatch({ type: "GO_TO_STEP", step })}
+          />
 
-        <AnimatePresence mode="wait" custom={state.direction}>
-          <motion.div
-            key={state.currentStep}
-            custom={state.direction}
-            variants={variants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-          >
-            {state.currentStep === 1 && (
-              <StockSelectionStep state={state} dispatch={dispatch} />
-            )}
-            {state.currentStep === 2 && (
-              <AllocationStep state={state} dispatch={dispatch} />
-            )}
-            {state.currentStep === 3 && (
-              <StrategyStep state={state} dispatch={dispatch} />
-            )}
-          </motion.div>
-        </AnimatePresence>
-      </div>
-    </ContentLayout>
+          <AnimatePresence mode="wait" custom={state.direction}>
+            <motion.div
+              key={state.currentStep}
+              custom={state.direction}
+              variants={variants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            >
+              {state.currentStep === 1 && (
+                <StockSelectionStep state={state} dispatch={dispatch} />
+              )}
+              {state.currentStep === 2 && (
+                <AllocationStep state={state} dispatch={dispatch} />
+              )}
+              {state.currentStep === 3 && (
+                <StrategyStep state={state} dispatch={dispatch} />
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </ContentLayout>
+    </ConnectGuard>
   );
 }
