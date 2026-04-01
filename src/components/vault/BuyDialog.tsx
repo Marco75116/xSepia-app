@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, ShoppingCart } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { useState } from "react";
 import { StockLogo } from "@/components/StockLogo";
 import { Button } from "@/components/ui/button";
@@ -144,7 +144,7 @@ export function BuyDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="gap-1.5">
-          <ShoppingCart className="size-3.5" />
+          <Plus className="size-3.5" />
           Buy
         </Button>
       </DialogTrigger>

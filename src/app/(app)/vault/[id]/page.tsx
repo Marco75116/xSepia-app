@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar, Loader2, Plus, User, Vault } from "lucide-react";
+import { Calendar, Coins, Loader2, Plus, User, Vault } from "lucide-react";
 import { notFound } from "next/navigation";
 import { use, useEffect, useState } from "react";
 import { ContentLayout } from "@/components/ContentLayout";
@@ -94,7 +94,7 @@ export default function VaultDetailPage({
           {vault.smartAccountAddress && (
             <FundDialog smartAccountAddress={vault.smartAccountAddress}>
               <Button variant="outline" size="sm" className="gap-1.5">
-                <Plus className="size-3.5" />
+                <Coins className="size-3.5" />
                 Fund
               </Button>
             </FundDialog>
