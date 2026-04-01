@@ -135,67 +135,68 @@ export default function VaultDetailPage({
           })}
         </div>
 
-        <Tabs defaultValue="holdings">
-          <TabsList>
-            <TabsTrigger value="holdings">Holdings</TabsTrigger>
-            <TabsTrigger value="history">History</TabsTrigger>
-            <TabsTrigger value="details">Details</TabsTrigger>
-          </TabsList>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <Tabs defaultValue="holdings">
+            <TabsList>
+              <TabsTrigger value="holdings">Holdings</TabsTrigger>
+              <TabsTrigger value="details">Details</TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="holdings">
-            <HoldingsCard
-              smartAccountAddress={vault.smartAccountAddress}
-              compositions={compositions}
-            />
-          </TabsContent>
+            <TabsContent value="holdings">
+              <HoldingsCard
+                smartAccountAddress={vault.smartAccountAddress}
+                compositions={compositions}
+              />
+            </TabsContent>
 
-          <TabsContent value="history">
-            <OrdersHistory vaultId={vault.id} />
-          </TabsContent>
-
-          <TabsContent value="details">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold">Details</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <User className="size-3.5" />
-                    <span>Owner</span>
-                  </div>
-                  <CopyableAddress address={vault.owner} />
-                </div>
-                {vault.smartAccountAddress && (
+            <TabsContent value="details">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold">
+                    Details
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-muted-foreground">
-                      <Vault className="size-3.5" />
-                      <span>Smart Account</span>
+                      <User className="size-3.5" />
+                      <span>Owner</span>
                     </div>
-                    <CopyableAddress address={vault.smartAccountAddress} />
+                    <CopyableAddress address={vault.owner} />
                   </div>
-                )}
-                {vault.dcaAmount && (
+                  {vault.smartAccountAddress && (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Vault className="size-3.5" />
+                        <span>Smart Account</span>
+                      </div>
+                      <CopyableAddress address={vault.smartAccountAddress} />
+                    </div>
+                  )}
+                  {vault.dcaAmount && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">DCA Amount</span>
+                      <span className="font-mono font-medium">
+                        ${vault.dcaAmount}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">DCA Amount</span>
-                    <span className="font-mono font-medium">
-                      ${vault.dcaAmount}
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Calendar className="size-3.5" />
+                      <span>Created</span>
+                    </div>
+                    <span className="font-medium">
+                      {formatDate(vault.createdAt)}
                     </span>
                   </div>
-                )}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Calendar className="size-3.5" />
-                    <span>Created</span>
-                  </div>
-                  <span className="font-medium">
-                    {formatDate(vault.createdAt)}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+
+          <OrdersHistory vaultId={vault.id} />
+        </div>
       </div>
     </ContentLayout>
   );
