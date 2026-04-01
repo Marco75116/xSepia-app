@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, ShoppingCart } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { StockLogo } from "@/components/StockLogo";
 import { Button } from "@/components/ui/button";
 import {
@@ -134,7 +134,7 @@ export function BuyConfirmDialog({
             {buying ? (
               <Loader2 className="size-4 animate-spin" />
             ) : (
-              <ShoppingCart className="size-4" />
+              <Plus className="size-4" />
             )}
             {buying ? "Submitting..." : "Confirm Buy"}
           </Button>

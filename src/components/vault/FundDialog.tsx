@@ -4,9 +4,9 @@ import {
   ArrowLeft,
   Check,
   ChevronRight,
+  Coins,
   Copy,
   Loader2,
-  Plus,
   QrCode,
   SendHorizontal,
   Wallet,
@@ -276,7 +276,7 @@ export function FundDialog({
       <DialogTrigger asChild>
         {children ?? (
           <Button variant="ghost" size="icon" className="size-7">
-            <Plus className="size-3.5" />
+            <Coins className="size-3.5" />
           </Button>
         )}
       </DialogTrigger>
