@@ -52,10 +52,12 @@ export function BuyDialog({
   vaultId,
   smartAccountAddress,
   compositions,
+  chainId,
 }: {
   vaultId: string;
   smartAccountAddress: string;
   compositions: Composition[];
+  chainId: number;
 }) {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
@@ -89,6 +91,7 @@ export function BuyDialog({
     const { data, error } = await api.swap.post({
       userAccountAddress: smartAccountAddress,
       vaultId,
+      chainId,
       orders,
     });
 

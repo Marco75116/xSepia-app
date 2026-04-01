@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { erc20Abi } from "@/lib/abis/erc20";
-import { INK_CHAIN_ID } from "@/lib/constants";
+import { getChainConfig } from "@/lib/constants";
 import { getStockByTicker } from "@/lib/data";
 import { formatCurrency } from "@/lib/formatters";
 
@@ -20,10 +20,13 @@ type Composition = {
 export function HoldingsCard({
   smartAccountAddress,
   compositions,
+  chainId,
 }: {
   smartAccountAddress: string | null;
   compositions: Composition[];
+  chainId: number;
 }) {
+  const chainConfig = getChainConfig(chainId);
   const account = smartAccountAddress as `0x${string}` | undefined;
 
   const contracts = account
@@ -32,7 +35,7 @@ export function HoldingsCard({
         abi: erc20Abi,
         functionName: "balanceOf" as const,
         args: [account],
-        chainId: INK_CHAIN_ID,
+        chainId: chainConfig.chainId,
       }))
     : [];
 

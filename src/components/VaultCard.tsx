@@ -1,7 +1,9 @@
+import Image from "next/image";
 import Link from "next/link";
 import { StockLogo } from "@/components/StockLogo";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { getChainConfig } from "@/lib/constants";
 import { getStockByTicker } from "@/lib/data";
 import { formatAddress, formatCurrency } from "@/lib/formatters";
 
@@ -9,6 +11,7 @@ type VaultSummary = {
   id: string;
   name: string;
   strategy: string;
+  chainId: number;
   smartAccountAddress: string | null;
   compositions: {
     ticker: string;
@@ -17,6 +20,8 @@ type VaultSummary = {
 };
 
 export function VaultCard({ vault }: { vault: VaultSummary }) {
+  const chainConfig = getChainConfig(vault.chainId);
+
   return (
     <Link href={`/vault/${vault.id}`} className="h-full">
       <Card className="h-full transition-colors hover:bg-muted/50">
@@ -32,6 +37,13 @@ export function VaultCard({ vault }: { vault: VaultSummary }) {
               </Badge>
             </div>
             <div className="flex items-center gap-1">
+              <Image
+                src={chainConfig.logo}
+                alt={chainConfig.name}
+                width={16}
+                height={16}
+                className="rounded-full"
+              />
               {vault.compositions.slice(0, 3).map((comp) => {
                 const stock = getStockByTicker(comp.ticker);
                 return (

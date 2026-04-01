@@ -3,6 +3,7 @@
 import {
   Calendar,
   Coins,
+  Globe,
   Layers,
   Loader2,
   TrendingUp,
@@ -10,6 +11,7 @@ import {
   Vault,
   Wallet,
 } from "lucide-react";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { use, useEffect, useState } from "react";
 import { useReadContracts } from "wagmi";
@@ -27,7 +29,7 @@ import { VaultHistoryChart } from "@/components/vault/VaultHistoryChart";
 import { VaultValueChart } from "@/components/vault/VaultValueChart";
 import { WithdrawDialog } from "@/components/vault/WithdrawDialog";
 import { erc20Abi } from "@/lib/abis/erc20";
-import { INK_CHAIN_ID, USDC_ADDRESS } from "@/lib/constants";
+import { DEFAULT_CHAIN_ID, getChainConfig } from "@/lib/constants";
 import { api } from "@/lib/eden";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 
@@ -36,6 +38,7 @@ type VaultData = {
     id: string;
     name: string;
     owner: string;
+    chainId: number;
     smartAccountAddress: string | null;
     strategy: string;
     dcaFrequency: string | null;
@@ -76,6 +79,9 @@ export default function VaultDetailPage({
     fetchVault();
   }, [id]);
 
+  const vaultChainId = data?.vault.chainId ?? DEFAULT_CHAIN_ID;
+  const chainConfig = getChainConfig(vaultChainId);
+
   const smartAccount = data?.vault.smartAccountAddress as
     | `0x${string}`
     | undefined;
@@ -84,11 +90,11 @@ export default function VaultDetailPage({
     contracts: smartAccount
       ? [
           {
-            address: USDC_ADDRESS,
+            address: chainConfig.usdc,
             abi: erc20Abi,
             functionName: "balanceOf" as const,
             args: [smartAccount],
-            chainId: INK_CHAIN_ID,
+            chainId: chainConfig.chainId,
           },
         ]
       : [],
@@ -128,8 +134,21 @@ export default function VaultDetailPage({
             <Badge variant="secondary" className="font-mono uppercase">
               {vault.strategy}
             </Badge>
+            <Badge variant="outline" className="gap-1.5">
+              <Image
+                src={chainConfig.logo}
+                alt={chainConfig.name}
+                width={14}
+                height={14}
+                className="rounded-full"
+              />
+              {chainConfig.shortName}
+            </Badge>
             {vault.smartAccountAddress && (
-              <FundDialog smartAccountAddress={vault.smartAccountAddress}>
+              <FundDialog
+                smartAccountAddress={vault.smartAccountAddress}
+                chainId={vaultChainId}
+              >
                 <Button variant="outline" size="sm" className="gap-1.5">
                   <Coins className="size-3.5" />
                   Fund
@@ -141,6 +160,7 @@ export default function VaultDetailPage({
                 vaultId={vault.id}
                 smartAccountAddress={vault.smartAccountAddress}
                 compositions={compositions}
+                chainId={vaultChainId}
               />
             )}
             {vault.smartAccountAddress && (
@@ -148,6 +168,7 @@ export default function VaultDetailPage({
                 vaultId={vault.id}
                 smartAccountAddress={vault.smartAccountAddress}
                 compositions={compositions}
+                chainId={vaultChainId}
               />
             )}
           </div>
@@ -158,6 +179,22 @@ export default function VaultDetailPage({
                 <CardTitle className="text-sm font-semibold">Details</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Globe className="size-3.5" />
+                    <span>Network</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 font-medium">
+                    <Image
+                      src={chainConfig.logo}
+                      alt={chainConfig.name}
+                      width={14}
+                      height={14}
+                      className="rounded-full"
+                    />
+                    {chainConfig.shortName}
+                  </div>
+                </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-muted-foreground">
                     {vault.strategy === "dca" ? (
@@ -224,10 +261,11 @@ export default function VaultDetailPage({
               <VaultValueChart
                 smartAccountAddress={vault.smartAccountAddress}
                 compositions={compositions}
+                chainId={vaultChainId}
               />
             )}
 
-            <OrdersHistory vaultId={vault.id} />
+            <OrdersHistory vaultId={vault.id} chainId={vaultChainId} />
           </div>
 
           <VaultHistoryChart />

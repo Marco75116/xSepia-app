@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { WagmiProvider } from "wagmi";
+import { ChainProvider } from "@/lib/chain-context";
 import { config } from "@/lib/wagmi";
 
 export function Web3Provider({ children }: { children: React.ReactNode }) {
@@ -10,7 +11,9 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
 
   return (
     <WagmiProvider config={config}>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <ChainProvider>{children}</ChainProvider>
+      </QueryClientProvider>
     </WagmiProvider>
   );
 }

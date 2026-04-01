@@ -13,6 +13,7 @@ type VaultSummary = {
   id: string;
   name: string;
   owner: string;
+  chainId: number;
   smartAccountAddress: string | null;
   strategy: string;
   dcaFrequency: string | null;

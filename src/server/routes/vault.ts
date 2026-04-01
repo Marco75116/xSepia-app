@@ -3,8 +3,8 @@ import { Elysia, t } from "elysia";
 import { decodeEventLog, isAddress } from "viem";
 import { accountFactoryAbi } from "@/lib/abis/accountFactory";
 import { verifyUserAccount } from "@/lib/blockscout";
-import { ACCOUNT_FACTORY_ADDRESS } from "@/lib/constants";
-import { getWalletClient, publicClient } from "@/lib/viemClient";
+import { getChainConfig } from "@/lib/constants";
+import { getPublicClient, getWalletClient } from "@/lib/viemClient";
 import { db } from "@/server/db";
 import {
   buyOrders,
@@ -43,15 +43,18 @@ export const vaultRoutes = new Elysia()
     ]);
 
     const allVaults = await db
-      .select({ id: vaults.id, name: vaults.name })
+      .select({ id: vaults.id, name: vaults.name, chainId: vaults.chainId })
       .from(vaults);
-    const vaultMap = new Map(allVaults.map((v) => [v.id, v.name]));
+    const vaultMap = new Map(
+      allVaults.map((v) => [v.id, { name: v.name, chainId: v.chainId }]),
+    );
 
     const unified = [
       ...buys.map((o) => ({
         id: o.id,
         type: "buy" as const,
-        vaultName: vaultMap.get(o.vaultId) ?? "Unknown",
+        vaultName: vaultMap.get(o.vaultId)?.name ?? "Unknown",
+        chainId: vaultMap.get(o.vaultId)?.chainId ?? 57073,
         ticker: o.ticker,
         amount: o.amount,
         status: o.status,
@@ -62,7 +65,8 @@ export const vaultRoutes = new Elysia()
       ...withdrawals.map((o) => ({
         id: o.id,
         type: "withdraw" as const,
-        vaultName: vaultMap.get(o.vaultId) ?? "Unknown",
+        vaultName: vaultMap.get(o.vaultId)?.name ?? "Unknown",
+        chainId: vaultMap.get(o.vaultId)?.chainId ?? 57073,
         ticker: o.ticker,
         amount: o.amount,
         status: o.status,
@@ -91,6 +95,7 @@ export const vaultRoutes = new Elysia()
         id: v.id,
         name: v.name,
         owner: v.owner,
+        chainId: v.chainId,
         smartAccountAddress: v.smartAccountAddress,
         strategy: v.strategy,
         dcaFrequency: v.dcaFrequency,
@@ -133,6 +138,7 @@ export const vaultRoutes = new Elysia()
           id: vault.id,
           name: vault.name,
           owner: vault.owner,
+          chainId: vault.chainId,
           smartAccountAddress: vault.smartAccountAddress,
           strategy: vault.strategy,
           dcaFrequency: vault.dcaFrequency,
@@ -206,12 +212,21 @@ export const vaultRoutes = new Elysia()
   .post(
     "/vault",
     async ({ body }) => {
-      const { owner, name, allocations, strategy, dcaFrequency, dcaAmount } =
-        body;
+      const {
+        owner,
+        name,
+        chainId,
+        allocations,
+        strategy,
+        dcaFrequency,
+        dcaAmount,
+      } = body;
 
       if (!isAddress(owner)) {
         throw new Error("Invalid owner address");
       }
+
+      const chainConfig = getChainConfig(chainId);
 
       const dcaFrequencySeconds: Record<string, number> = {
         daily: 86400,
@@ -234,14 +249,17 @@ export const vaultRoutes = new Elysia()
           : BigInt(0),
       };
 
-      const txHash = await getWalletClient().writeContract({
-        address: ACCOUNT_FACTORY_ADDRESS,
+      const walletClient = getWalletClient(chainConfig.chainId);
+      const client = getPublicClient(chainConfig.chainId);
+
+      const txHash = await walletClient.writeContract({
+        address: chainConfig.accountFactory,
         abi: accountFactoryAbi,
         functionName: "createAccount",
         args: [owner, saltIndex, config],
       });
 
-      const receipt = await publicClient.waitForTransactionReceipt({
+      const receipt = await client.waitForTransactionReceipt({
         hash: txHash,
       });
 
@@ -249,7 +267,7 @@ export const vaultRoutes = new Elysia()
 
       const log = receipt.logs.find(
         (l) =>
-          l.address.toLowerCase() === ACCOUNT_FACTORY_ADDRESS.toLowerCase(),
+          l.address.toLowerCase() === chainConfig.accountFactory.toLowerCase(),
       );
 
       if (log) {
@@ -262,9 +280,11 @@ export const vaultRoutes = new Elysia()
       }
 
       if (smartAccountAddress) {
-        verifyUserAccount(smartAccountAddress, owner as `0x${string}`).catch(
-          () => {},
-        );
+        verifyUserAccount(
+          smartAccountAddress,
+          owner as `0x${string}`,
+          chainConfig.chainId,
+        ).catch(() => {});
       }
 
       const [vault] = await db
@@ -272,6 +292,7 @@ export const vaultRoutes = new Elysia()
         .values({
           name,
           owner,
+          chainId: chainConfig.chainId,
           saltIndex: Number(saltIndex),
           smartAccountAddress,
           strategy,
@@ -293,6 +314,7 @@ export const vaultRoutes = new Elysia()
         vault: {
           id: vault.id,
           name: vault.name,
+          chainId: vault.chainId,
           smartAccountAddress: vault.smartAccountAddress,
         },
       };
@@ -301,6 +323,7 @@ export const vaultRoutes = new Elysia()
       body: t.Object({
         owner: t.String(),
         name: t.String(),
+        chainId: t.Number(),
         allocations: t.Array(
           t.Object({
             ticker: t.String(),

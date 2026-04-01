@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { erc20Abi } from "@/lib/abis/erc20";
-import { INK_CHAIN_ID, USDC_ADDRESS } from "@/lib/constants";
+import { getChainConfig } from "@/lib/constants";
 import { formatCurrency } from "@/lib/formatters";
 
 type FundMethod = "select" | "wallet" | "deposit";
@@ -100,19 +100,22 @@ function DepositAddressView({ address }: { address: string }) {
 
 function WalletTransferView({
   smartAccountAddress,
+  chainId,
 }: {
   smartAccountAddress: string;
+  chainId: number;
 }) {
+  const chainConfig = getChainConfig(chainId);
   const { address, isConnected } = useAccount();
   const [amount, setAmount] = useState("");
   const [connectOpen, setConnectOpen] = useState(false);
 
   const { data: walletBalance, refetch: refetchBalance } = useReadContract({
-    address: USDC_ADDRESS,
+    address: chainConfig.usdc,
     abi: erc20Abi,
     functionName: "balanceOf",
     args: address ? [address] : undefined,
-    chainId: INK_CHAIN_ID,
+    chainId: chainConfig.chainId,
     query: { enabled: !!address },
   });
 
@@ -127,7 +130,7 @@ function WalletTransferView({
   const { isLoading: isConfirming, isSuccess: isConfirmed } =
     useWaitForTransactionReceipt({
       hash: txHash,
-      chainId: INK_CHAIN_ID,
+      chainId: chainConfig.chainId,
       query: { enabled: !!txHash },
     });
 
@@ -145,14 +148,14 @@ function WalletTransferView({
               ),
               onClick: () =>
                 window.open(
-                  `https://explorer.inkonchain.com/tx/${txHash}`,
+                  `${chainConfig.explorerUrl}/tx/${txHash}`,
                   "_blank",
                 ),
             }
           : undefined,
       });
     }
-  }, [isConfirmed, refetchBalance, txHash]);
+  }, [isConfirmed, refetchBalance, txHash, chainConfig.explorerUrl]);
 
   const formattedBalance =
     walletBalance !== undefined ? Number(walletBalance) / 1e6 : 0;
@@ -173,11 +176,11 @@ function WalletTransferView({
     const amountInDecimals = BigInt(Math.floor(parsedAmount * 1e6));
 
     writeContract({
-      address: USDC_ADDRESS,
+      address: chainConfig.usdc,
       abi: erc20Abi,
       functionName: "transfer",
       args: [smartAccountAddress as `0x${string}`, amountInDecimals],
-      chainId: INK_CHAIN_ID,
+      chainId: chainConfig.chainId,
     });
   }
 
@@ -254,11 +257,14 @@ function WalletTransferView({
 
 export function FundDialog({
   smartAccountAddress,
+  chainId,
   children,
 }: {
   smartAccountAddress: string;
+  chainId: number;
   children?: React.ReactNode;
 }) {
+  const chainConfig = getChainConfig(chainId);
   const [open, setOpen] = useState(false);
   const [method, setMethod] = useState<FundMethod>("select");
 
@@ -280,7 +286,7 @@ export function FundDialog({
     },
     deposit: {
       title: "Deposit Address",
-      description: "Send USDC to this address on Ink network.",
+      description: `Send USDC to this address on ${chainConfig.name}.`,
     },
   };
 
@@ -328,7 +334,10 @@ export function FundDialog({
         )}
 
         {method === "wallet" && (
-          <WalletTransferView smartAccountAddress={smartAccountAddress} />
+          <WalletTransferView
+            smartAccountAddress={smartAccountAddress}
+            chainId={chainId}
+          />
         )}
 
         {method === "deposit" && (

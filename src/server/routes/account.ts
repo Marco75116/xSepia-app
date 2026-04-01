@@ -1,22 +1,26 @@
 import { Elysia, t } from "elysia";
 import { decodeEventLog, isAddress } from "viem";
 import { accountFactoryAbi } from "@/lib/abis/accountFactory";
-import { ACCOUNT_FACTORY_ADDRESS } from "@/lib/constants";
-import { getWalletClient, publicClient } from "@/lib/viemClient";
+import { getChainConfig } from "@/lib/constants";
+import { getPublicClient, getWalletClient } from "@/lib/viemClient";
 
 export const accountRoutes = new Elysia().post(
   "/account",
   async ({ body }) => {
-    const { owner } = body;
+    const { owner, chainId } = body;
 
     if (!isAddress(owner)) {
       throw new Error("Invalid owner address");
     }
 
+    const chainConfig = getChainConfig(chainId);
+    const walletClient = getWalletClient(chainConfig.chainId);
+    const client = getPublicClient(chainConfig.chainId);
+
     let txHash: `0x${string}`;
     try {
-      txHash = await getWalletClient().writeContract({
-        address: ACCOUNT_FACTORY_ADDRESS,
+      txHash = await walletClient.writeContract({
+        address: chainConfig.accountFactory,
         abi: accountFactoryAbi,
         functionName: "createAccount",
         args: [
@@ -35,12 +39,13 @@ export const accountRoutes = new Elysia().post(
       throw new Error("Account creation transaction failed");
     }
 
-    const receipt = await publicClient.waitForTransactionReceipt({
+    const receipt = await client.waitForTransactionReceipt({
       hash: txHash,
     });
 
     const log = receipt.logs.find(
-      (l) => l.address.toLowerCase() === ACCOUNT_FACTORY_ADDRESS.toLowerCase(),
+      (l) =>
+        l.address.toLowerCase() === chainConfig.accountFactory.toLowerCase(),
     );
 
     let accountAddress: string | undefined;
@@ -62,6 +67,7 @@ export const accountRoutes = new Elysia().post(
   {
     body: t.Object({
       owner: t.String(),
+      chainId: t.Number(),
     }),
   },
 );
