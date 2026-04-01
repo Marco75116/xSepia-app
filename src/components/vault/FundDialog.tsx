@@ -27,8 +27,10 @@ import { formatCurrency } from "@/lib/formatters";
 
 export function FundDialog({
   smartAccountAddress,
+  children,
 }: {
   smartAccountAddress: string;
+  children?: React.ReactNode;
 }) {
   const { address, isConnected } = useAccount();
   const [open, setOpen] = useState(false);
@@ -111,9 +113,11 @@ export function FundDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="size-7">
-          <Plus className="size-3.5" />
-        </Button>
+        {children ?? (
+          <Button variant="ghost" size="icon" className="size-7">
+            <Plus className="size-3.5" />
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Calendar, Loader2, User, Vault } from "lucide-react";
+import { ArrowLeft, Calendar, Loader2, Plus, User, Vault } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { use, useEffect, useState } from "react";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BuyCard } from "@/components/vault/BuyCard";
+import { FundDialog } from "@/components/vault/FundDialog";
 import { HoldingsCard } from "@/components/vault/HoldingsCard";
 import { VaultHeader } from "@/components/vault/VaultHeader";
 import { getStockByTicker } from "@/lib/data";
@@ -101,6 +102,14 @@ export default function VaultDetailPage({
           <Badge variant="secondary" className="font-mono uppercase">
             {vault.strategy}
           </Badge>
+          {vault.smartAccountAddress && (
+            <FundDialog smartAccountAddress={vault.smartAccountAddress}>
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <Plus className="size-3.5" />
+                Fund
+              </Button>
+            </FundDialog>
+          )}
         </div>
 
         {vault.smartAccountAddress && (
