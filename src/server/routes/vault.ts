@@ -2,6 +2,7 @@ import { desc, eq, sql } from "drizzle-orm";
 import { Elysia, t } from "elysia";
 import { decodeEventLog, isAddress } from "viem";
 import { accountFactoryAbi } from "@/lib/abis/accountFactory";
+import { verifyUserAccount } from "@/lib/blockscout";
 import { ACCOUNT_FACTORY_ADDRESS } from "@/lib/constants";
 import { getWalletClient, publicClient } from "@/lib/viemClient";
 import { db } from "@/server/db";
@@ -258,6 +259,12 @@ export const vaultRoutes = new Elysia()
           topics: log.topics,
         });
         smartAccountAddress = (decoded.args as { account: string }).account;
+      }
+
+      if (smartAccountAddress) {
+        verifyUserAccount(smartAccountAddress, owner as `0x${string}`).catch(
+          () => {},
+        );
       }
 
       const [vault] = await db
