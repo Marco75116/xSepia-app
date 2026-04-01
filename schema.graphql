@@ -1,0 +1,99 @@
+# ============================================
+# On-chain indexed entities (from indexer)
+# ============================================
+
+
+type Account @entity {
+  id: ID!
+  account: String! @index
+  owner: String! @index
+  operator: String! @index
+  salt: BigInt!
+  block: Int!
+  chainId: Int!
+  txnHash: String! @index
+}
+
+
+type VaultConfig @entity {
+  id: ID!
+  account: String! @index
+  owner: String! @index
+  tokens: [String!]!
+  allocations: [String!]!
+  dcaAmount: BigInt!
+  dcaFrequency: BigInt!
+  block: Int!
+  chainId: Int!
+  txnHash: String! @index
+}
+
+
+type Withdrawal @entity {
+  id: ID!
+  account: String! @index
+  token: String! @index
+  to: String! @index
+  amount: BigInt!
+  block: Int!
+  chainId: Int!
+  txnHash: String! @index
+}
+
+
+# ============================================
+# App-level entities (managed by the backend)
+# ============================================
+
+
+type Vault @entity {
+  id: ID!
+  name: String!
+  owner: String! @index
+  chainId: Int!
+  saltIndex: Int!
+  smartAccountAddress: String @index
+  strategy: String!
+  dcaFrequency: String
+  dcaAmount: BigInt
+  createdAt: BigInt!
+  updatedAt: BigInt!
+}
+
+
+type VaultComposition @entity {
+  id: ID!
+  vaultId: String! @index
+  ticker: String!
+  tokenAddress: String! @index
+  weight: Int!
+  chainId: Int! @index
+  createdAt: BigInt!
+}
+
+
+type BuyOrder @entity {
+  id: ID!
+  vaultId: String! @index
+  ticker: String!
+  tokenAddress: String! @index
+  sellAmountUsdc: BigInt!
+  orderUid: String @index
+  status: String! @index
+  error: String
+  chainId: Int! @index
+  createdAt: BigInt!
+}
+
+
+type WithdrawOrder @entity {
+  id: ID!
+  vaultId: String! @index
+  ticker: String!
+  tokenAddress: String! @index
+  amount: BigInt!
+  txHash: String @index
+  status: String! @index
+  chainId: Int! @index
+  createdAt: BigInt!
+}

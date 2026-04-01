@@ -17,11 +17,12 @@ export function formatAddress(address: string): string {
 }
 
 export function formatDate(date: string): string {
+  const parsed = /^\d+$/.test(date) ? new Date(Number(date)) : new Date(date);
   return new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
-  }).format(new Date(date));
+  }).format(parsed);
 }
 
 export function formatCompactCurrency(value: number): string {

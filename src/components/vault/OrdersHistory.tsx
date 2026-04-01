@@ -81,12 +81,13 @@ const withdrawStatusConfig = {
 };
 
 function formatDateTime(date: string): string {
+  const parsed = /^\d+$/.test(date) ? new Date(Number(date)) : new Date(date);
   return new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
-  }).format(new Date(date));
+  }).format(parsed);
 }
 
 function getOrderExplorerUrl(
@@ -156,10 +157,7 @@ export function OrdersHistory({
         }
       }
 
-      unified.sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      );
+      unified.sort((a, b) => Number(b.createdAt) - Number(a.createdAt));
 
       setOrders(unified);
       setLoading(false);

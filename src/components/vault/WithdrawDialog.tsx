@@ -90,6 +90,7 @@ function WithdrawRow({
       amount: submittedAmount.current,
       txHash,
       status: isReverted ? "failed" : "confirmed",
+      chainId,
     });
     if (isConfirmed) {
       setAmount("");
@@ -129,6 +130,7 @@ function WithdrawRow({
     isReverted,
     isConfirmed,
     chainConfig.explorerUrl,
+    chainId,
   ]);
 
   const parsedAmount = Number.parseFloat(amount);

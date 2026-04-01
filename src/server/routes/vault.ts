@@ -1,4 +1,4 @@
-import { desc, eq, sql } from "drizzle-orm";
+import { desc, eq, inArray, sql } from "drizzle-orm";
 import { Elysia, t } from "elysia";
 import { decodeEventLog, isAddress } from "viem";
 import { accountFactoryAbi } from "@/lib/abis/accountFactory";
@@ -7,44 +7,52 @@ import { getChainConfig } from "@/lib/constants";
 import { getPublicClient, getWalletClient } from "@/lib/viemClient";
 import { db } from "@/server/db";
 import {
-  buyOrders,
-  vaultCompositions,
-  vaults,
-  withdrawOrders,
+  buyOrder,
+  vault,
+  vaultComposition,
+  withdrawOrder,
 } from "@/server/db/schema";
 
 export const vaultRoutes = new Elysia()
   .get("/orders", async () => {
-    const [buys, withdrawals] = await Promise.all([
+    console.info("[vault] GET /orders — fetching all orders");
+
+    const [buys, withdrawals, allVaults] = await Promise.all([
       db
         .select({
-          id: buyOrders.id,
-          vaultId: buyOrders.vaultId,
-          ticker: buyOrders.ticker,
-          amount: buyOrders.sellAmountUsdc,
-          orderUid: buyOrders.orderUid,
-          status: buyOrders.status,
-          createdAt: buyOrders.createdAt,
+          id: buyOrder.id,
+          vaultId: buyOrder.vaultId,
+          ticker: buyOrder.ticker,
+          sellAmountUsdc: buyOrder.sellAmountUsdc,
+          orderUid: buyOrder.orderUid,
+          status: buyOrder.status,
+          chainId: buyOrder.chainId,
+          createdAt: buyOrder.createdAt,
         })
-        .from(buyOrders)
-        .orderBy(desc(buyOrders.createdAt)),
+        .from(buyOrder)
+        .orderBy(desc(buyOrder.createdAt)),
       db
         .select({
-          id: withdrawOrders.id,
-          vaultId: withdrawOrders.vaultId,
-          ticker: withdrawOrders.ticker,
-          amount: withdrawOrders.amount,
-          txHash: withdrawOrders.txHash,
-          status: withdrawOrders.status,
-          createdAt: withdrawOrders.createdAt,
+          id: withdrawOrder.id,
+          vaultId: withdrawOrder.vaultId,
+          ticker: withdrawOrder.ticker,
+          amount: withdrawOrder.amount,
+          txHash: withdrawOrder.txHash,
+          status: withdrawOrder.status,
+          chainId: withdrawOrder.chainId,
+          createdAt: withdrawOrder.createdAt,
         })
-        .from(withdrawOrders)
-        .orderBy(desc(withdrawOrders.createdAt)),
+        .from(withdrawOrder)
+        .orderBy(desc(withdrawOrder.createdAt)),
+      db
+        .select({ id: vault.id, name: vault.name, chainId: vault.chainId })
+        .from(vault),
     ]);
 
-    const allVaults = await db
-      .select({ id: vaults.id, name: vaults.name, chainId: vaults.chainId })
-      .from(vaults);
+    console.info(
+      `[vault] GET /orders — found ${buys.length} buys, ${withdrawals.length} withdrawals, ${allVaults.length} vaults`,
+    );
+
     const vaultMap = new Map(
       allVaults.map((v) => [v.id, { name: v.name, chainId: v.chainId }]),
     );
@@ -54,44 +62,57 @@ export const vaultRoutes = new Elysia()
         id: o.id,
         type: "buy" as const,
         vaultName: vaultMap.get(o.vaultId)?.name ?? "Unknown",
-        chainId: vaultMap.get(o.vaultId)?.chainId ?? 57073,
+        chainId: o.chainId,
         ticker: o.ticker,
-        amount: o.amount,
+        amount: String(o.sellAmountUsdc),
         status: o.status,
         orderUid: o.orderUid,
         txHash: null as string | null,
-        createdAt: o.createdAt.toISOString(),
+        createdAt: String(o.createdAt),
       })),
       ...withdrawals.map((o) => ({
         id: o.id,
         type: "withdraw" as const,
         vaultName: vaultMap.get(o.vaultId)?.name ?? "Unknown",
-        chainId: vaultMap.get(o.vaultId)?.chainId ?? 57073,
+        chainId: o.chainId,
         ticker: o.ticker,
-        amount: o.amount,
+        amount: String(o.amount),
         status: o.status,
         orderUid: null as string | null,
         txHash: o.txHash,
-        createdAt: o.createdAt.toISOString(),
+        createdAt: String(o.createdAt),
       })),
-    ].sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    );
+    ].sort((a, b) => Number(BigInt(b.createdAt) - BigInt(a.createdAt)));
 
+    console.info(
+      `[vault] GET /orders — returning ${unified.length} unified orders`,
+    );
     return unified;
   })
   .get(
     "/vaults",
     async ({ query }) => {
+      console.info(`[vault] GET /vaults — owner=${query.owner}`);
+
       const ownerVaults = await db
         .select()
-        .from(vaults)
-        .where(eq(vaults.owner, query.owner));
+        .from(vault)
+        .where(eq(vault.owner, query.owner));
 
-      const allCompositions = await db.select().from(vaultCompositions);
+      if (ownerVaults.length === 0) {
+        console.info(
+          `[vault] GET /vaults — no vaults found for ${query.owner}`,
+        );
+        return [];
+      }
 
-      return ownerVaults.map((v) => ({
+      const vaultIds = ownerVaults.map((v) => v.id);
+      const compositions = await db
+        .select()
+        .from(vaultComposition)
+        .where(inArray(vaultComposition.vaultId, vaultIds));
+
+      const result = ownerVaults.map((v) => ({
         id: v.id,
         name: v.name,
         owner: v.owner,
@@ -99,8 +120,8 @@ export const vaultRoutes = new Elysia()
         smartAccountAddress: v.smartAccountAddress,
         strategy: v.strategy,
         dcaFrequency: v.dcaFrequency,
-        createdAt: v.createdAt.toISOString(),
-        compositions: allCompositions
+        createdAt: String(v.createdAt),
+        compositions: compositions
           .filter((c) => c.vaultId === v.id)
           .map((c) => ({
             ticker: c.ticker,
@@ -108,6 +129,11 @@ export const vaultRoutes = new Elysia()
             weight: c.weight,
           })),
       }));
+
+      console.info(
+        `[vault] GET /vaults — returning ${result.length} vaults for ${query.owner}`,
+      );
+      return result;
     },
     {
       query: t.Object({
@@ -118,32 +144,39 @@ export const vaultRoutes = new Elysia()
   .get(
     "/vault/:id",
     async ({ params }) => {
-      const [vault] = await db
+      console.info(`[vault] GET /vault/${params.id}`);
+
+      const [found] = await db
         .select()
-        .from(vaults)
-        .where(eq(vaults.id, params.id))
+        .from(vault)
+        .where(eq(vault.id, params.id))
         .limit(1);
 
-      if (!vault) {
+      if (!found) {
+        console.error(`[vault] GET /vault/${params.id} — not found`);
         throw new Error("Vault not found");
       }
 
       const compositions = await db
         .select()
-        .from(vaultCompositions)
-        .where(eq(vaultCompositions.vaultId, vault.id));
+        .from(vaultComposition)
+        .where(eq(vaultComposition.vaultId, found.id));
+
+      console.info(
+        `[vault] GET /vault/${params.id} — found, ${compositions.length} compositions`,
+      );
 
       return {
         vault: {
-          id: vault.id,
-          name: vault.name,
-          owner: vault.owner,
-          chainId: vault.chainId,
-          smartAccountAddress: vault.smartAccountAddress,
-          strategy: vault.strategy,
-          dcaFrequency: vault.dcaFrequency,
-          dcaAmount: vault.dcaAmount,
-          createdAt: vault.createdAt.toISOString(),
+          id: found.id,
+          name: found.name,
+          owner: found.owner,
+          chainId: found.chainId,
+          smartAccountAddress: found.smartAccountAddress,
+          strategy: found.strategy,
+          dcaFrequency: found.dcaFrequency,
+          dcaAmount: found.dcaAmount ? String(found.dcaAmount) : null,
+          createdAt: String(found.createdAt),
         },
         compositions: compositions.map((c) => ({
           ticker: c.ticker,
@@ -161,21 +194,27 @@ export const vaultRoutes = new Elysia()
   .get(
     "/vault/:id/orders",
     async ({ params }) => {
+      console.info(`[vault] GET /vault/${params.id}/orders`);
+
       const orders = await db
         .select()
-        .from(buyOrders)
-        .where(eq(buyOrders.vaultId, params.id))
-        .orderBy(desc(buyOrders.createdAt));
+        .from(buyOrder)
+        .where(eq(buyOrder.vaultId, params.id))
+        .orderBy(desc(buyOrder.createdAt));
+
+      console.info(
+        `[vault] GET /vault/${params.id}/orders — ${orders.length} orders`,
+      );
 
       return orders.map((o) => ({
         id: o.id,
         ticker: o.ticker,
         tokenAddress: o.tokenAddress,
-        sellAmountUsdc: o.sellAmountUsdc,
+        sellAmountUsdc: String(o.sellAmountUsdc),
         orderUid: o.orderUid,
         status: o.status,
         error: o.error,
-        createdAt: o.createdAt.toISOString(),
+        createdAt: String(o.createdAt),
       }));
     },
     {
@@ -187,20 +226,26 @@ export const vaultRoutes = new Elysia()
   .get(
     "/vault/:id/withdrawals",
     async ({ params }) => {
+      console.info(`[vault] GET /vault/${params.id}/withdrawals`);
+
       const orders = await db
         .select()
-        .from(withdrawOrders)
-        .where(eq(withdrawOrders.vaultId, params.id))
-        .orderBy(desc(withdrawOrders.createdAt));
+        .from(withdrawOrder)
+        .where(eq(withdrawOrder.vaultId, params.id))
+        .orderBy(desc(withdrawOrder.createdAt));
+
+      console.info(
+        `[vault] GET /vault/${params.id}/withdrawals — ${orders.length} orders`,
+      );
 
       return orders.map((o) => ({
         id: o.id,
         ticker: o.ticker,
         tokenAddress: o.tokenAddress,
-        amount: o.amount,
+        amount: String(o.amount),
         txHash: o.txHash,
         status: o.status,
-        createdAt: o.createdAt.toISOString(),
+        createdAt: String(o.createdAt),
       }));
     },
     {
@@ -222,7 +267,12 @@ export const vaultRoutes = new Elysia()
         dcaAmount,
       } = body;
 
+      console.info(
+        `[vault] POST /vault — owner=${owner}, name=${name}, chainId=${chainId}, strategy=${strategy}, allocations=${allocations.length}`,
+      );
+
       if (!isAddress(owner)) {
+        console.error(`[vault] POST /vault — invalid owner address: ${owner}`);
         throw new Error("Invalid owner address");
       }
 
@@ -235,10 +285,14 @@ export const vaultRoutes = new Elysia()
       };
 
       const [{ max: maxSalt }] = await db
-        .select({ max: sql<number>`coalesce(max(${vaults.saltIndex}), -1)` })
-        .from(vaults)
-        .where(eq(vaults.owner, owner));
+        .select({
+          max: sql<number>`coalesce(max(${vault.saltIndex}), -1)`,
+        })
+        .from(vault)
+        .where(eq(vault.owner, owner));
+
       const saltIndex = BigInt(maxSalt + 1);
+      console.info(`[vault] POST /vault — saltIndex=${saltIndex}`);
 
       const config = {
         tokens: allocations.map((a) => a.tokenAddress as `0x${string}`),
@@ -252,16 +306,21 @@ export const vaultRoutes = new Elysia()
       const walletClient = getWalletClient(chainConfig.chainId);
       const client = getPublicClient(chainConfig.chainId);
 
+      console.info("[vault] POST /vault — sending createAccount tx...");
       const txHash = await walletClient.writeContract({
         address: chainConfig.accountFactory,
         abi: accountFactoryAbi,
         functionName: "createAccount",
         args: [owner, saltIndex, config],
       });
+      console.info(`[vault] POST /vault — tx sent: ${txHash}`);
 
       const receipt = await client.waitForTransactionReceipt({
         hash: txHash,
       });
+      console.info(
+        `[vault] POST /vault — tx confirmed, status=${receipt.status}, block=${receipt.blockNumber}`,
+      );
 
       let smartAccountAddress: string | undefined;
 
@@ -277,6 +336,13 @@ export const vaultRoutes = new Elysia()
           topics: log.topics,
         });
         smartAccountAddress = (decoded.args as { account: string }).account;
+        console.info(
+          `[vault] POST /vault — smart account deployed: ${smartAccountAddress}`,
+        );
+      } else {
+        console.error(
+          "[vault] POST /vault — no AccountCreated event found in tx logs",
+        );
       }
 
       if (smartAccountAddress) {
@@ -284,38 +350,63 @@ export const vaultRoutes = new Elysia()
           smartAccountAddress,
           owner as `0x${string}`,
           chainConfig.chainId,
-        ).catch(() => {});
+        ).catch((err) => {
+          console.error(
+            "[vault] POST /vault — blockscout verification failed:",
+            err instanceof Error ? err.message : err,
+          );
+        });
       }
 
-      const [vault] = await db
-        .insert(vaults)
+      const vaultId = crypto.randomUUID();
+      const now = String(Date.now());
+
+      console.info(`[vault] POST /vault — inserting vault id=${vaultId}`);
+      const [inserted] = await db
+        .insert(vault)
         .values({
+          id: vaultId,
           name,
           owner,
           chainId: chainConfig.chainId,
           saltIndex: Number(saltIndex),
-          smartAccountAddress,
+          smartAccountAddress: smartAccountAddress ?? null,
           strategy,
-          dcaFrequency: strategy === "dca" ? dcaFrequency : null,
-          dcaAmount: strategy === "dca" && dcaAmount ? String(dcaAmount) : null,
+          dcaFrequency: strategy === "dca" ? (dcaFrequency ?? null) : null,
+          dcaAmount:
+            strategy === "dca" && dcaAmount
+              ? String(Math.floor(dcaAmount * 1e6))
+              : null,
+          createdAt: now,
+          updatedAt: now,
         })
         .returning();
+      console.info(`[vault] POST /vault — vault inserted: ${inserted.id}`);
 
-      await db.insert(vaultCompositions).values(
-        allocations.map((a) => ({
-          vaultId: vault.id,
-          ticker: a.ticker,
-          tokenAddress: a.tokenAddress,
-          weight: a.weight,
-        })),
-      );
+      if (allocations.length > 0) {
+        console.info(
+          `[vault] POST /vault — inserting ${allocations.length} compositions`,
+        );
+        await db.insert(vaultComposition).values(
+          allocations.map((a) => ({
+            id: crypto.randomUUID(),
+            vaultId,
+            ticker: a.ticker,
+            tokenAddress: a.tokenAddress,
+            weight: a.weight,
+            chainId: chainConfig.chainId,
+            createdAt: now,
+          })),
+        );
+        console.info("[vault] POST /vault — compositions inserted");
+      }
 
       return {
         vault: {
-          id: vault.id,
-          name: vault.name,
-          chainId: vault.chainId,
-          smartAccountAddress: vault.smartAccountAddress,
+          id: inserted.id,
+          name: inserted.name,
+          chainId: inserted.chainId,
+          smartAccountAddress: inserted.smartAccountAddress,
         },
       };
     },
