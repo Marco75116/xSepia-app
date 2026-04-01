@@ -2,6 +2,7 @@
 
 import { Loader2, Plus } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { StockLogo } from "@/components/StockLogo";
 import { Button } from "@/components/ui/button";
 import {
@@ -59,10 +60,6 @@ export function BuyDialog({
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [buying, setBuying] = useState(false);
-  const [result, setResult] = useState<{
-    type: "success" | "error";
-    message: string;
-  } | null>(null);
 
   const parsedAmount = Number.parseFloat(amount);
   const isValid = !Number.isNaN(parsedAmount) && parsedAmount >= 10;
@@ -85,10 +82,7 @@ export function BuyDialog({
 
     if (orders.length === 0) {
       setBuying(false);
-      setResult({
-        type: "error",
-        message: "All allocations are below $10 minimum.",
-      });
+      toast.error("All allocations are below $10 minimum.");
       return;
     }
 
@@ -101,10 +95,7 @@ export function BuyDialog({
     setBuying(false);
 
     if (error) {
-      setResult({
-        type: "error",
-        message: "Failed to submit orders. Check balance and try again.",
-      });
+      toast.error("Failed to submit orders. Check balance and try again.");
       return;
     }
 
@@ -112,22 +103,15 @@ export function BuyDialog({
     const failCount = data.results.filter((r) => r.error).length;
 
     if (successCount > 0 && failCount === 0) {
-      setResult({
-        type: "success",
-        message: `${successCount} order${successCount > 1 ? "s" : ""} submitted`,
-      });
+      toast.success(
+        `${successCount} order${successCount > 1 ? "s" : ""} submitted`,
+      );
       setAmount("");
     } else if (successCount > 0) {
-      setResult({
-        type: "success",
-        message: `${successCount} submitted, ${failCount} failed`,
-      });
+      toast.success(`${successCount} submitted, ${failCount} failed`);
       setAmount("");
     } else {
-      setResult({
-        type: "error",
-        message: "Failed to submit orders. Check balance and try again.",
-      });
+      toast.error("Failed to submit orders. Check balance and try again.");
     }
   }
 
@@ -136,7 +120,6 @@ export function BuyDialog({
     setOpen(next);
     if (!next) {
       setAmount("");
-      setResult(null);
     }
   }
 
@@ -166,7 +149,6 @@ export function BuyDialog({
             value={amount}
             onChange={(e) => {
               setAmount(e.target.value.replace(/[^0-9.]/g, ""));
-              setResult(null);
             }}
             className="font-mono focus-visible:ring-0 focus-visible:ring-offset-0"
             disabled={buying}
@@ -218,14 +200,6 @@ export function BuyDialog({
               </p>
             )}
           </>
-        )}
-
-        {result && (
-          <p
-            className={`text-sm font-medium ${result.type === "success" ? "text-positive" : "text-destructive"}`}
-          >
-            {result.message}
-          </p>
         )}
 
         <DialogFooter className="gap-2 sm:gap-0">

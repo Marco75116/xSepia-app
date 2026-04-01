@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Web3Provider } from "@/components/Web3Provider";
 import "./globals.css";
@@ -32,6 +33,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <Web3Provider>
           <TooltipProvider>{children}</TooltipProvider>
+          <Toaster />
         </Web3Provider>
       </body>
     </html>
