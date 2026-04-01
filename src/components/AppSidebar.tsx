@@ -28,23 +28,22 @@ export function AppSidebar() {
       <SidebarHeader className="pb-0">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild tooltip="Xodds">
+            <SidebarMenuButton size="lg" asChild tooltip="xStocks">
               <Link href="/">
-                <div className="flex size-8 items-center justify-center rounded-md">
-                  <Image
-                    src="https://xstocks.fi/favicon.svg"
-                    alt="Xodds"
-                    width={28}
-                    height={28}
-                    className="rounded-sm"
-                  />
-                </div>
-                <div className="flex flex-col gap-0.5 leading-none">
-                  <span className="font-semibold tracking-tight">Xodds</span>
-                  <span className="text-[11px] text-sidebar-foreground/50">
-                    Tokenized stocks
-                  </span>
-                </div>
+                <Image
+                  src="/xsepia-logo.svg"
+                  alt="xStocks"
+                  width={120}
+                  height={33}
+                  className="group-data-[collapsible=icon]:hidden"
+                />
+                <Image
+                  src="/xsepia-logo.svg"
+                  alt="xStocks"
+                  width={28}
+                  height={28}
+                  className="hidden group-data-[collapsible=icon]:block"
+                />
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
