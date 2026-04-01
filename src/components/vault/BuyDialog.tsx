@@ -143,10 +143,7 @@ export function BuyDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button size="sm" className="gap-1.5">
-          <CircleDollarSign className="size-4" />
-          Buy
-        </Button>
+        <Button size="sm">Buy</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
@@ -176,6 +173,9 @@ export function BuyDialog({
 
         {isValid && activeLines.length > 0 && (
           <>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              Preview
+            </p>
             <div className="space-y-1">
               {activeLines.map((line, i) => {
                 const stock = getStockByTicker(line.ticker);
@@ -214,15 +214,6 @@ export function BuyDialog({
                 $10 minimum).
               </p>
             )}
-
-            <Separator />
-
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Total</span>
-              <span className="font-mono text-sm font-bold">
-                {formatCurrency(parsedAmount)}
-              </span>
-            </div>
           </>
         )}
 
