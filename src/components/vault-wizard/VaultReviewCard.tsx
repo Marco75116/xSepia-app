@@ -1,9 +1,11 @@
 "use client";
 
+import { TrendingUp } from "lucide-react";
 import { useMemo } from "react";
 import { Pie, PieChart } from "recharts";
 import type { WizardState } from "@/app/(app)/vault/new/page";
 import { StockLogo } from "@/components/StockLogo";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { type ChartConfig, ChartContainer } from "@/components/ui/chart";
 import { Separator } from "@/components/ui/separator";
@@ -19,6 +21,13 @@ const frequencyLabels: Record<WizardState["dcaFrequency"], string> = {
   daily: "Daily",
   weekly: "Weekly",
   monthly: "Monthly",
+};
+
+const actionLabels: Record<string, string> = {
+  rebalance: "Change Allocation",
+  buy: "Buy Asset",
+  exit: "Exit to Cash",
+  pause: "Pause Buying",
 };
 
 export function VaultReviewCard({ state }: { state: WizardState }) {
@@ -135,6 +144,33 @@ export function VaultReviewCard({ state }: { state: WizardState }) {
             </div>
           )}
         </div>
+
+        {state.signal && (
+          <>
+            <Separator />
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="flex size-6 items-center justify-center rounded bg-primary/10 text-primary">
+                  <TrendingUp className="size-3.5" />
+                </div>
+                <span className="text-sm font-semibold">Signal</span>
+              </div>
+              <p className="text-sm text-muted-foreground leading-snug">
+                {state.signal.question}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="secondary" className="text-[10px]">
+                  Threshold: {state.signalThreshold}%
+                </Badge>
+                {state.signalAction && (
+                  <Badge variant="outline" className="text-[10px]">
+                    {actionLabels[state.signalAction]}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );

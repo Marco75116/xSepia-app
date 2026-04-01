@@ -1,20 +1,9 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, Hand, Loader2, RefreshCw } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { useAccount } from "wagmi";
+import { ArrowRight, Hand, RefreshCw } from "lucide-react";
 import type { WizardAction, WizardState } from "@/app/(app)/vault/new/page";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -26,10 +15,6 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { StrategyOptionCard } from "@/components/vault-wizard/StrategyOptionCard";
-import { VaultReviewCard } from "@/components/vault-wizard/VaultReviewCard";
-import { useChain } from "@/lib/chain-context";
-import { getStockByTicker, getStocksByChainId } from "@/lib/data";
-import { api } from "@/lib/eden";
 
 const strategies = [
   {
@@ -53,59 +38,10 @@ export function StrategyStep({
   state: WizardState;
   dispatch: React.Dispatch<WizardAction>;
 }) {
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const { address, isConnected } = useAccount();
-  const { chainId } = useChain();
-  const router = useRouter();
-
-  const canCreate =
+  const canProceed =
     state.strategy === "manual"
       ? state.vaultName.trim().length > 0
       : state.amount > 0 && state.vaultName.trim().length > 0;
-
-  async function handleCreateVault() {
-    if (!isConnected || !address) {
-      setError("Please connect your wallet first.");
-      return;
-    }
-
-    setCreating(true);
-    setError(null);
-
-    const chainStocks = getStocksByChainId(chainId);
-    const allocations = state.selectedTickers
-      .filter((ticker) => (state.allocations[ticker] ?? 0) > 0)
-      .map((ticker) => {
-        const stock =
-          chainStocks.find((s) => s.ticker === ticker) ??
-          getStockByTicker(ticker);
-        return {
-          ticker,
-          tokenAddress: stock?.address ?? "",
-          weight: state.allocations[ticker],
-        };
-      });
-
-    const { data, error: apiError } = await api.vault.post({
-      owner: address,
-      name: state.vaultName.trim(),
-      chainId,
-      allocations,
-      strategy: state.strategy,
-      dcaFrequency: state.strategy === "dca" ? state.dcaFrequency : undefined,
-      dcaAmount: state.strategy === "dca" ? state.amount : undefined,
-    });
-
-    if (apiError) {
-      setError("Failed to create vault. Please try again.");
-      setCreating(false);
-      return;
-    }
-
-    router.push(`/vault/${data.vault.id}`);
-  }
 
   return (
     <div className="mx-auto max-w-lg space-y-6 px-4">
@@ -200,69 +136,13 @@ export function StrategyStep({
         <Button
           size="lg"
           className="w-full gap-2"
-          disabled={!canCreate}
-          onClick={() => setDialogOpen(true)}
+          disabled={!canProceed}
+          onClick={() => dispatch({ type: "NEXT_STEP" })}
         >
-          Review & Create
-          <Check className="size-4" />
+          Next
+          <ArrowRight className="size-4" />
         </Button>
       </div>
-
-      <Dialog
-        open={dialogOpen}
-        onOpenChange={(open) => {
-          if (!creating) setDialogOpen(open);
-        }}
-      >
-        <DialogContent
-          className="sm:max-w-md"
-          onPointerDownOutside={(e) => {
-            if (creating) e.preventDefault();
-          }}
-          onEscapeKeyDown={(e) => {
-            if (creating) e.preventDefault();
-          }}
-        >
-          {creating ? (
-            <div className="flex flex-col items-center gap-4 py-10">
-              <Loader2 className="text-primary size-10 animate-spin" />
-              <div className="text-center">
-                <p className="font-semibold text-lg">Creating your vault</p>
-                <p className="text-muted-foreground text-sm">
-                  Deploying your smart account on-chain...
-                </p>
-              </div>
-            </div>
-          ) : (
-            <>
-              <DialogHeader>
-                <DialogTitle>Confirm Vault</DialogTitle>
-                <DialogDescription>
-                  Review your vault configuration before creating it.
-                </DialogDescription>
-              </DialogHeader>
-
-              <VaultReviewCard state={state} />
-
-              {error && <p className="text-sm text-destructive">{error}</p>}
-
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setDialogOpen(false)}>
-                  Back
-                </Button>
-                <Button
-                  className="gap-2"
-                  onClick={handleCreateVault}
-                  disabled={!isConnected}
-                >
-                  Create Vault
-                  <Check className="size-4" />
-                </Button>
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

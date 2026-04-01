@@ -120,6 +120,9 @@ export const vaultRoutes = new Elysia()
         smartAccountAddress: v.smartAccountAddress,
         strategy: v.strategy,
         dcaFrequency: v.dcaFrequency,
+        signalQuestion: v.signalQuestion,
+        signalThreshold: v.signalThreshold,
+        signalAction: v.signalAction,
         createdAt: String(v.createdAt),
         compositions: compositions
           .filter((c) => c.vaultId === v.id)
@@ -176,6 +179,10 @@ export const vaultRoutes = new Elysia()
           strategy: found.strategy,
           dcaFrequency: found.dcaFrequency,
           dcaAmount: found.dcaAmount ? String(found.dcaAmount) : null,
+          signalId: found.signalId,
+          signalQuestion: found.signalQuestion,
+          signalThreshold: found.signalThreshold,
+          signalAction: found.signalAction,
           createdAt: String(found.createdAt),
         },
         compositions: compositions.map((c) => ({
@@ -265,6 +272,10 @@ export const vaultRoutes = new Elysia()
         strategy,
         dcaFrequency,
         dcaAmount,
+        signalId,
+        signalQuestion,
+        signalThreshold,
+        signalAction,
       } = body;
 
       console.info(
@@ -291,7 +302,25 @@ export const vaultRoutes = new Elysia()
         .from(vault)
         .where(eq(vault.owner, owner));
 
-      const saltIndex = BigInt(maxSalt + 1);
+      const walletClient = getWalletClient(chainConfig.chainId);
+      const client = getPublicClient(chainConfig.chainId);
+
+      let saltIndex = BigInt(Math.max(maxSalt + 1, 10));
+
+      for (let attempt = 0; attempt < 20; attempt++) {
+        const hasAcc = await client.readContract({
+          address: chainConfig.accountFactory,
+          abi: accountFactoryAbi,
+          functionName: "hasAccount",
+          args: [owner as `0x${string}`, saltIndex],
+        });
+        if (!hasAcc) break;
+        console.info(
+          `[vault] POST /vault — saltIndex=${saltIndex} already deployed on-chain, trying next`,
+        );
+        saltIndex += BigInt(1);
+      }
+
       console.info(`[vault] POST /vault — saltIndex=${saltIndex}`);
 
       const config = {
@@ -302,9 +331,6 @@ export const vaultRoutes = new Elysia()
           ? BigInt(dcaFrequencySeconds[dcaFrequency] ?? 0)
           : BigInt(0),
       };
-
-      const walletClient = getWalletClient(chainConfig.chainId);
-      const client = getPublicClient(chainConfig.chainId);
 
       console.info("[vault] POST /vault — sending createAccount tx...");
       let txHash: `0x${string}`;
@@ -395,6 +421,10 @@ export const vaultRoutes = new Elysia()
             strategy === "dca" && dcaAmount
               ? String(Math.floor(dcaAmount * 1e6))
               : null,
+          signalId: signalId ?? null,
+          signalQuestion: signalQuestion ?? null,
+          signalThreshold: signalThreshold ?? null,
+          signalAction: signalAction ?? null,
           createdAt: now,
           updatedAt: now,
         })
@@ -449,6 +479,10 @@ export const vaultRoutes = new Elysia()
           ]),
         ),
         dcaAmount: t.Optional(t.Number()),
+        signalId: t.Optional(t.String()),
+        signalQuestion: t.Optional(t.String()),
+        signalThreshold: t.Optional(t.Number()),
+        signalAction: t.Optional(t.String()),
       }),
     },
   );

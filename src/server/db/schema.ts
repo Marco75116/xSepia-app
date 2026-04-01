@@ -11,6 +11,10 @@ export const vault = pgTable("vault", {
   strategy: text("strategy").notNull(),
   dcaFrequency: text("dca_frequency"),
   dcaAmount: numeric("dca_amount"),
+  signalId: text("signal_id"),
+  signalQuestion: text("signal_question"),
+  signalThreshold: integer("signal_threshold"),
+  signalAction: text("signal_action"),
   createdAt: numeric("created_at").notNull(),
   updatedAt: numeric("updated_at").notNull(),
 });

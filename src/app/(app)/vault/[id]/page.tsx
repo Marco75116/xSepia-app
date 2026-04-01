@@ -33,6 +33,13 @@ import { DEFAULT_CHAIN_ID, getChainConfig } from "@/lib/constants";
 import { api } from "@/lib/eden";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 
+const actionLabels: Record<string, string> = {
+  rebalance: "Change Allocation",
+  buy: "Buy Asset",
+  exit: "Exit to Cash",
+  pause: "Pause Buying",
+};
+
 type VaultData = {
   vault: {
     id: string;
@@ -43,6 +50,10 @@ type VaultData = {
     strategy: string;
     dcaFrequency: string | null;
     dcaAmount: string | null;
+    signalId: string | null;
+    signalQuestion: string | null;
+    signalThreshold: number | null;
+    signalAction: string | null;
     createdAt: string;
   };
   compositions: {
@@ -145,6 +156,12 @@ export default function VaultDetailPage({
               {chainConfig.shortName}
             </Badge>
             {vault.smartAccountAddress && (
+              <Badge variant="secondary" className="gap-1.5 font-mono">
+                <Wallet className="size-3" />
+                {formatCurrency(usdcBalance)} USDC
+              </Badge>
+            )}
+            {vault.smartAccountAddress && (
               <FundDialog
                 smartAccountAddress={vault.smartAccountAddress}
                 chainId={vaultChainId}
@@ -243,15 +260,28 @@ export default function VaultDetailPage({
                     {formatDate(vault.createdAt)}
                   </span>
                 </div>
-                {vault.smartAccountAddress && (
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Wallet className="size-3.5" />
-                      <span>USDC Available</span>
+                {vault.signalQuestion && (
+                  <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="size-3.5 text-primary" />
+                      <span className="text-xs font-semibold">Signal</span>
                     </div>
-                    <span className="font-mono font-medium">
-                      {formatCurrency(usdcBalance)}
-                    </span>
+                    <p className="text-xs text-muted-foreground leading-snug">
+                      {vault.signalQuestion}
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {vault.signalThreshold != null && (
+                        <Badge variant="secondary" className="text-[10px]">
+                          Threshold: {vault.signalThreshold}%
+                        </Badge>
+                      )}
+                      {vault.signalAction && (
+                        <Badge variant="outline" className="text-[10px]">
+                          {actionLabels[vault.signalAction] ??
+                            vault.signalAction}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 )}
               </CardContent>
