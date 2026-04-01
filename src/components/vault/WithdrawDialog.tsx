@@ -40,15 +40,37 @@ type Composition = {
   weight: number;
 };
 
+function parseDecimalToBigInt(value: string, decimals: number): bigint {
+  const [intPart = "0", fracPart = ""] = value.split(".");
+  const paddedFrac = fracPart.slice(0, decimals).padEnd(decimals, "0");
+  return BigInt(intPart) * BigInt(10) ** BigInt(decimals) + BigInt(paddedFrac);
+}
+
+function formatTokenBalance(raw: bigint, decimals: number): string {
+  const divisor = BigInt(10) ** BigInt(decimals);
+  const intPart = raw / divisor;
+  const fracPart = raw % divisor;
+  const fracStr = fracPart.toString().padStart(decimals, "0");
+  const trimmed = fracStr.slice(0, 4);
+  if (raw === BigInt(0)) return "0";
+  if (intPart === BigInt(0) && raw > BigInt(0)) {
+    const num = Number(raw) / Number(divisor);
+    return num < 0.0001 ? num.toExponential(2) : `0.${trimmed}`;
+  }
+  return `${intPart}.${trimmed}`;
+}
+
+const TOKEN_DECIMALS = 18;
+
 function WithdrawRow({
   comp,
-  balance,
+  rawBalance,
   smartAccountAddress,
   vaultId,
   chainId,
 }: {
   comp: Composition;
-  balance: number;
+  rawBalance: bigint;
   smartAccountAddress: string;
   vaultId: string;
   chainId: number;
@@ -57,8 +79,10 @@ function WithdrawRow({
   const stock = getStockByTicker(comp.ticker);
   const { address: connectedAddress } = useAccount();
   const [amount, setAmount] = useState("");
+  const [isMax, setIsMax] = useState(false);
   const submittedAmount = useRef("");
-  const hasBalance = balance > 0;
+  const hasBalance = rawBalance > BigInt(0);
+  const displayBalance = formatTokenBalance(rawBalance, TOKEN_DECIMALS);
 
   const {
     writeContract,
@@ -133,12 +157,12 @@ function WithdrawRow({
     chainId,
   ]);
 
-  const parsedAmount = Number.parseFloat(amount);
-  const isValid =
-    !Number.isNaN(parsedAmount) && parsedAmount > 0 && parsedAmount <= balance;
-  const parsedRaw = BigInt(
-    Math.floor((Number.isNaN(parsedAmount) ? 0 : parsedAmount) * 1e18),
-  );
+  const parsedRaw = isMax
+    ? rawBalance
+    : amount
+      ? parseDecimalToBigInt(amount, TOKEN_DECIMALS)
+      : BigInt(0);
+  const isValid = parsedRaw > BigInt(0) && parsedRaw <= rawBalance;
   const isLoading = isSigning || isConfirming;
 
   function handleWithdraw() {
@@ -155,8 +179,9 @@ function WithdrawRow({
   }
 
   function handleMax() {
-    if (balance > 0) {
-      setAmount(String(balance));
+    if (rawBalance > BigInt(0)) {
+      setAmount(displayBalance);
+      setIsMax(true);
       reset();
     }
   }
@@ -174,9 +199,7 @@ function WithdrawRow({
           <div>
             <p className="text-sm font-medium">{stock?.name ?? comp.ticker}</p>
             <p className="text-xs text-muted-foreground">
-              {hasBalance
-                ? `${balance < 0.0001 ? balance.toExponential(2) : balance.toFixed(4)} tokens`
-                : "No balance"}
+              {hasBalance ? `${displayBalance} tokens` : "No balance"}
             </p>
           </div>
         </div>
@@ -191,6 +214,7 @@ function WithdrawRow({
               value={amount}
               onChange={(e) => {
                 setAmount(e.target.value.replace(/[^0-9.]/g, ""));
+                setIsMax(false);
                 if (isConfirmed) reset();
               }}
               className="font-mono text-xs focus-visible:ring-0 focus-visible:ring-offset-0 pr-12"
@@ -307,15 +331,17 @@ export function WithdrawDialog({
           <div>
             {compositions.map((comp, i) => {
               const result = data?.[i];
-              const balance =
-                result?.status === "success" ? Number(result.result) / 1e18 : 0;
+              const rawBalance =
+                result?.status === "success"
+                  ? BigInt(result.result as bigint)
+                  : BigInt(0);
 
               return (
                 <div key={comp.ticker}>
                   {i > 0 && <Separator />}
                   <WithdrawRow
                     comp={comp}
-                    balance={balance}
+                    rawBalance={rawBalance}
                     smartAccountAddress={smartAccountAddress}
                     vaultId={vaultId}
                     chainId={chainId}
