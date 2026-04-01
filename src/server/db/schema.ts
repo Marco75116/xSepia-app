@@ -1,97 +1,81 @@
 import { relations } from "drizzle-orm";
-import {
-  integer,
-  numeric,
-  pgTable,
-  text,
-  timestamp,
-  uuid,
-} from "drizzle-orm/pg-core";
+import { integer, numeric, pgTable, text } from "drizzle-orm/pg-core";
 
-export const vaults = pgTable("vaults", {
-  id: uuid("id").primaryKey().defaultRandom(),
+export const vault = pgTable("vault", {
+  id: text("id").primaryKey(),
   name: text("name").notNull(),
   owner: text("owner").notNull(),
-  chainId: integer("chain_id").notNull().default(57073),
+  chainId: integer("chain_id").notNull(),
   saltIndex: integer("salt_index").notNull().default(0),
   smartAccountAddress: text("smart_account_address"),
-  strategy: text("strategy", { enum: ["manual", "dca"] }).notNull(),
-  dcaFrequency: text("dca_frequency", {
-    enum: ["daily", "weekly", "monthly"],
-  }),
+  strategy: text("strategy").notNull(),
+  dcaFrequency: text("dca_frequency"),
   dcaAmount: numeric("dca_amount"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdAt: numeric("created_at").notNull(),
+  updatedAt: numeric("updated_at").notNull(),
 });
 
-export const vaultCompositions = pgTable("vault_compositions", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  vaultId: uuid("vault_id")
-    .notNull()
-    .references(() => vaults.id, { onDelete: "cascade" }),
+export const vaultComposition = pgTable("vault_composition", {
+  id: text("id").primaryKey(),
+  vaultId: text("vault_id").notNull(),
   ticker: text("ticker").notNull(),
   tokenAddress: text("token_address").notNull(),
   weight: integer("weight").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  chainId: integer("chain_id").notNull(),
+  createdAt: numeric("created_at").notNull(),
 });
 
-export const buyOrders = pgTable("buy_orders", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  vaultId: uuid("vault_id")
-    .notNull()
-    .references(() => vaults.id, { onDelete: "cascade" }),
+export const buyOrder = pgTable("buy_order", {
+  id: text("id").primaryKey(),
+  vaultId: text("vault_id").notNull(),
   ticker: text("ticker").notNull(),
   tokenAddress: text("token_address").notNull(),
   sellAmountUsdc: numeric("sell_amount_usdc").notNull(),
   orderUid: text("order_uid"),
-  status: text("status", {
-    enum: ["submitted", "filled", "failed"],
-  }).notNull(),
+  status: text("status").notNull(),
   error: text("error"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  chainId: integer("chain_id").notNull(),
+  createdAt: numeric("created_at").notNull(),
 });
 
-export const vaultsRelations = relations(vaults, ({ many }) => ({
-  compositions: many(vaultCompositions),
-  buyOrders: many(buyOrders),
-  withdrawOrders: many(withdrawOrders),
+export const withdrawOrder = pgTable("withdraw_order", {
+  id: text("id").primaryKey(),
+  vaultId: text("vault_id").notNull(),
+  ticker: text("ticker").notNull(),
+  tokenAddress: text("token_address").notNull(),
+  amount: numeric("amount").notNull(),
+  txHash: text("tx_hash"),
+  status: text("status").notNull(),
+  chainId: integer("chain_id").notNull(),
+  createdAt: numeric("created_at").notNull(),
+});
+
+export const vaultRelations = relations(vault, ({ many }) => ({
+  compositions: many(vaultComposition),
+  buyOrders: many(buyOrder),
+  withdrawOrders: many(withdrawOrder),
 }));
 
-export const vaultCompositionsRelations = relations(
-  vaultCompositions,
+export const vaultCompositionRelations = relations(
+  vaultComposition,
   ({ one }) => ({
-    vault: one(vaults, {
-      fields: [vaultCompositions.vaultId],
-      references: [vaults.id],
+    vault: one(vault, {
+      fields: [vaultComposition.vaultId],
+      references: [vault.id],
     }),
   }),
 );
 
-export const buyOrdersRelations = relations(buyOrders, ({ one }) => ({
-  vault: one(vaults, {
-    fields: [buyOrders.vaultId],
-    references: [vaults.id],
+export const buyOrderRelations = relations(buyOrder, ({ one }) => ({
+  vault: one(vault, {
+    fields: [buyOrder.vaultId],
+    references: [vault.id],
   }),
 }));
 
-export const withdrawOrders = pgTable("withdraw_orders", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  vaultId: uuid("vault_id")
-    .notNull()
-    .references(() => vaults.id, { onDelete: "cascade" }),
-  ticker: text("ticker").notNull(),
-  tokenAddress: text("token_address").notNull(),
-  amount: text("amount").notNull(),
-  txHash: text("tx_hash"),
-  status: text("status", {
-    enum: ["pending", "confirmed", "failed"],
-  }).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const withdrawOrdersRelations = relations(withdrawOrders, ({ one }) => ({
-  vault: one(vaults, {
-    fields: [withdrawOrders.vaultId],
-    references: [vaults.id],
+export const withdrawOrderRelations = relations(withdrawOrder, ({ one }) => ({
+  vault: one(vault, {
+    fields: [withdrawOrder.vaultId],
+    references: [vault.id],
   }),
 }));

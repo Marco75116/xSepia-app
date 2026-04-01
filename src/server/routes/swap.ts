@@ -18,7 +18,7 @@ import {
 } from "@/lib/oneinch";
 import { getWalletClient } from "@/lib/viemClient";
 import { db } from "@/server/db";
-import { buyOrders } from "@/server/db/schema";
+import { buyOrder } from "@/server/db/schema";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
@@ -84,6 +84,7 @@ async function submitCowOrder(
   }
 
   const orderUid = (await response.json()) as string;
+  console.info(`[swap] CoW order submitted for ${buyToken}: ${orderUid}`);
   return { buyToken, orderUid };
 }
 
@@ -122,6 +123,7 @@ async function submitOneInchOrder(
 
   const apiKey = process.env.ONEINCH_API_KEY;
   if (!apiKey) {
+    console.error("[swap] 1inch API key not configured");
     return { buyToken, error: "1inch API key not configured" };
   }
 
@@ -149,7 +151,9 @@ async function submitOneInchOrder(
   }
 
   const result = (await response.json()) as { orderHash?: string };
-  return { buyToken, orderUid: result.orderHash ?? orderHash };
+  const uid = result.orderHash ?? orderHash;
+  console.info(`[swap] 1inch order submitted for ${buyToken}: ${uid}`);
+  return { buyToken, orderUid: uid };
 }
 
 export const swapRoutes = new Elysia().post(
@@ -157,11 +161,17 @@ export const swapRoutes = new Elysia().post(
   async ({ body }) => {
     const { userAccountAddress, vaultId, chainId, orders } = body;
 
+    console.info(
+      `[swap] POST /swap — vaultId=${vaultId}, chainId=${chainId}, orders=${orders.length}, account=${userAccountAddress}`,
+    );
+
     if (!isAddress(userAccountAddress)) {
+      console.error(`[swap] Invalid userAccountAddress: ${userAccountAddress}`);
       throw new Error("Invalid userAccountAddress");
     }
 
     if (orders.length === 0) {
+      console.error("[swap] Empty orders array");
       throw new Error("orders array must not be empty");
     }
 
@@ -169,18 +179,23 @@ export const swapRoutes = new Elysia().post(
 
     for (const o of orders) {
       if (!isAddress(o.buyToken)) {
+        console.error(`[swap] Invalid buyToken address: ${o.buyToken}`);
         throw new Error(`Invalid buyToken address: ${o.buyToken}`);
       }
       if (
         chainConfig.chainId === 57073 &&
         !validBuyTokens.has(o.buyToken.toLowerCase())
       ) {
+        console.error(`[swap] Unsupported stock token: ${o.buyToken}`);
         throw new Error(
           `buyToken is not a supported stock token: ${o.buyToken}`,
         );
       }
       const sellAmount = BigInt(o.sellAmount);
       if (sellAmount < MIN_SELL_AMOUNT) {
+        console.error(
+          `[swap] sellAmount too low for ${o.buyToken}: ${o.sellAmount}`,
+        );
         throw new Error(
           `sellAmount must be at least 10 USDC (10000000) for ${o.buyToken}`,
         );
@@ -189,6 +204,10 @@ export const swapRoutes = new Elysia().post(
 
     const submitOrder =
       chainConfig.swapProtocol === "cow" ? submitCowOrder : submitOneInchOrder;
+
+    console.info(
+      `[swap] Submitting ${orders.length} orders via ${chainConfig.swapProtocol}...`,
+    );
 
     const results = await Promise.all(
       orders.map((o) =>
@@ -200,25 +219,37 @@ export const swapRoutes = new Elysia().post(
       ),
     );
 
+    const now = String(Date.now());
     const dbRows = results.map((r, i) => {
-      const sellAmountRaw = BigInt(orders[i].sellAmount);
-      const sellAmountUsdc = (Number(sellAmountRaw) / 1e6).toFixed(2);
+      const sellAmountUsdc = (
+        Number(BigInt(orders[i].sellAmount)) / 1e6
+      ).toFixed(2);
       const ticker =
         tickerByAddress.get(orders[i].buyToken.toLowerCase()) ??
         orders[i].buyToken;
 
       return {
+        id: crypto.randomUUID(),
         vaultId,
         ticker,
         tokenAddress: orders[i].buyToken,
         sellAmountUsdc,
         orderUid: r.orderUid ?? null,
-        status: r.orderUid ? ("submitted" as const) : ("failed" as const),
+        status: r.orderUid ? "submitted" : "failed",
         error: r.error ?? null,
+        chainId: chainConfig.chainId,
+        createdAt: now,
       };
     });
 
-    await db.insert(buyOrders).values(dbRows);
+    console.info(`[swap] Inserting ${dbRows.length} buy orders into DB...`);
+    await db.insert(buyOrder).values(dbRows);
+
+    const succeeded = results.filter((r) => r.orderUid).length;
+    const failed = results.length - succeeded;
+    console.info(
+      `[swap] POST /swap done — ${succeeded} succeeded, ${failed} failed`,
+    );
 
     return { results };
   },

@@ -4,7 +4,7 @@ import * as schema from "@/server/db/schema";
 
 const databaseUrl =
   process.env.DATABASE_URL ??
-  "postgresql://postgres:postgres@localhost:5432/xstocks";
+  "postgresql://postgres:postgres@localhost:4533/squid";
 
 const client = postgres(databaseUrl);
 
