@@ -1,3 +1,4 @@
+import { TrendingUp } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { StockLogo } from "@/components/StockLogo";
@@ -7,12 +8,22 @@ import { getChainConfig } from "@/lib/constants";
 import { getStockByTicker } from "@/lib/data";
 import { formatAddress, formatCurrency } from "@/lib/formatters";
 
+const actionLabels: Record<string, string> = {
+  rebalance: "Change Allocation",
+  buy: "Buy Asset",
+  exit: "Exit to Cash",
+  pause: "Pause Buying",
+};
+
 type VaultSummary = {
   id: string;
   name: string;
   strategy: string;
   chainId: number;
   smartAccountAddress: string | null;
+  signalQuestion: string | null;
+  signalThreshold: number | null;
+  signalAction: string | null;
   compositions: {
     ticker: string;
     weight: number;
@@ -89,6 +100,29 @@ export function VaultCard({ vault }: { vault: VaultSummary }) {
               );
             })}
           </div>
+
+          {vault.signalQuestion && (
+            <div className="flex items-start gap-2 rounded-lg border bg-muted/30 p-2.5">
+              <TrendingUp className="mt-0.5 size-3.5 shrink-0 text-primary" />
+              <div className="min-w-0 space-y-1">
+                <p className="truncate text-xs text-muted-foreground">
+                  {vault.signalQuestion}
+                </p>
+                <div className="flex flex-wrap gap-1">
+                  {vault.signalThreshold != null && (
+                    <Badge variant="secondary" className="text-[9px]">
+                      {vault.signalThreshold}%
+                    </Badge>
+                  )}
+                  {vault.signalAction && (
+                    <Badge variant="outline" className="text-[9px]">
+                      {actionLabels[vault.signalAction] ?? vault.signalAction}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </Link>

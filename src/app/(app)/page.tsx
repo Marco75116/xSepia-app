@@ -17,6 +17,9 @@ type VaultSummary = {
   smartAccountAddress: string | null;
   strategy: string;
   dcaFrequency: string | null;
+  signalQuestion: string | null;
+  signalThreshold: number | null;
+  signalAction: string | null;
   createdAt: string;
   compositions: {
     ticker: string;

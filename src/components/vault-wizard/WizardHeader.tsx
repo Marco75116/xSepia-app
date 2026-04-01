@@ -7,6 +7,7 @@ const steps = [
   { number: 1, label: "Stocks" },
   { number: 2, label: "Allocation" },
   { number: 3, label: "Strategy" },
+  { number: 4, label: "Signal" },
 ] as const;
 
 export function WizardHeader({
@@ -14,9 +15,9 @@ export function WizardHeader({
   onBack,
   onGoToStep,
 }: {
-  currentStep: 1 | 2 | 3;
+  currentStep: 1 | 2 | 3 | 4;
   onBack: () => void;
-  onGoToStep: (step: 1 | 2 | 3) => void;
+  onGoToStep: (step: 1 | 2 | 3 | 4) => void;
 }) {
   return (
     <div className="flex items-center justify-between">
@@ -81,7 +82,7 @@ export function WizardHeader({
             {i < steps.length - 1 && (
               <div
                 className={cn(
-                  "mb-4 h-px w-8 transition-colors",
+                  "mb-4 h-px w-6 transition-colors",
                   step.number < currentStep ? "bg-primary" : "bg-muted",
                 )}
               />

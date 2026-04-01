@@ -5,13 +5,15 @@ import { useReducer } from "react";
 import { ConnectGuard } from "@/components/ConnectGuard";
 import { ContentLayout } from "@/components/ContentLayout";
 import { AllocationStep } from "@/components/vault-wizard/AllocationStep";
+import type { SignalAction } from "@/components/vault-wizard/SignalActionCard";
+import { SignalStep } from "@/components/vault-wizard/SignalStep";
 import { StockSelectionStep } from "@/components/vault-wizard/StockSelectionStep";
 import { StrategyStep } from "@/components/vault-wizard/StrategyStep";
 import { WizardHeader } from "@/components/vault-wizard/WizardHeader";
 import { BASKETS } from "@/lib/data";
 
 export type WizardState = {
-  currentStep: 1 | 2 | 3;
+  currentStep: 1 | 2 | 3 | 4;
   direction: "forward" | "backward";
   selectedTickers: string[];
   allocations: Record<string, number>;
@@ -19,6 +21,9 @@ export type WizardState = {
   dcaFrequency: "daily" | "weekly" | "monthly";
   amount: number;
   vaultName: string;
+  signal: { id: string; question: string; probability: number } | null;
+  signalThreshold: number;
+  signalAction: SignalAction | null;
 };
 
 export type WizardAction =
@@ -32,8 +37,12 @@ export type WizardAction =
   | { type: "SET_STRATEGY"; strategy: WizardState["strategy"] }
   | { type: "SET_DCA_FREQUENCY"; frequency: WizardState["dcaFrequency"] }
   | { type: "SET_AMOUNT"; amount: number }
-  | { type: "GO_TO_STEP"; step: 1 | 2 | 3 }
-  | { type: "RESET_SELECTIONS" };
+  | { type: "GO_TO_STEP"; step: 1 | 2 | 3 | 4 }
+  | { type: "RESET_SELECTIONS" }
+  | { type: "SET_SIGNAL"; signal: WizardState["signal"] }
+  | { type: "CLEAR_SIGNAL" }
+  | { type: "SET_SIGNAL_THRESHOLD"; threshold: number }
+  | { type: "SET_SIGNAL_ACTION"; action: SignalAction };
 
 function equalizeAllocations(tickers: string[]): Record<string, number> {
   if (tickers.length === 0) return {};
@@ -49,8 +58,8 @@ function equalizeAllocations(tickers: string[]): Record<string, number> {
 function wizardReducer(state: WizardState, action: WizardAction): WizardState {
   switch (action.type) {
     case "NEXT_STEP": {
-      if (state.currentStep >= 3) return state;
-      const nextStep = (state.currentStep + 1) as 1 | 2 | 3;
+      if (state.currentStep >= 4) return state;
+      const nextStep = (state.currentStep + 1) as 1 | 2 | 3 | 4;
       let allocations = state.allocations;
       if (state.currentStep === 1) {
         const needsInit = state.selectedTickers.some(
@@ -71,7 +80,7 @@ function wizardReducer(state: WizardState, action: WizardAction): WizardState {
       if (state.currentStep <= 1) return state;
       return {
         ...state,
-        currentStep: (state.currentStep - 1) as 1 | 2 | 3,
+        currentStep: (state.currentStep - 1) as 1 | 2 | 3 | 4,
         direction: "backward",
       };
     }
@@ -130,6 +139,14 @@ function wizardReducer(state: WizardState, action: WizardAction): WizardState {
         selectedTickers: [],
         allocations: {},
       };
+    case "SET_SIGNAL":
+      return { ...state, signal: action.signal };
+    case "CLEAR_SIGNAL":
+      return { ...state, signal: null, signalAction: null };
+    case "SET_SIGNAL_THRESHOLD":
+      return { ...state, signalThreshold: action.threshold };
+    case "SET_SIGNAL_ACTION":
+      return { ...state, signalAction: action.action };
   }
 }
 
@@ -142,6 +159,9 @@ const initialState: WizardState = {
   dcaFrequency: "weekly",
   amount: 0,
   vaultName: "",
+  signal: null,
+  signalThreshold: 40,
+  signalAction: null,
 };
 
 const variants = {
@@ -187,6 +207,9 @@ export default function NewVaultPage() {
               )}
               {state.currentStep === 3 && (
                 <StrategyStep state={state} dispatch={dispatch} />
+              )}
+              {state.currentStep === 4 && (
+                <SignalStep state={state} dispatch={dispatch} />
               )}
             </motion.div>
           </AnimatePresence>
