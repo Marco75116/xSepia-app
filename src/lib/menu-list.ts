@@ -1,4 +1,10 @@
-import { Clock, Headset, Home, type LucideIcon, Vault } from "lucide-react";
+import {
+  Clock,
+  Headset,
+  LayoutDashboard,
+  type LucideIcon,
+  Vault,
+} from "lucide-react";
 
 type Submenu = {
   href: string;
@@ -27,9 +33,9 @@ export function getMenuList(pathname: string): Group[] {
       menus: [
         {
           href: "/",
-          label: "Home",
+          label: "Overview",
           active: pathname === "/",
-          icon: Home,
+          icon: LayoutDashboard,
           submenus: [],
         },
         {
