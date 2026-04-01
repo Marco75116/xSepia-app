@@ -28,19 +28,19 @@ export function AppSidebar() {
       <SidebarHeader className="pb-0">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild tooltip="xStocks">
+            <SidebarMenuButton size="lg" asChild tooltip="Xodds">
               <Link href="/">
                 <div className="flex size-8 items-center justify-center rounded-md">
                   <Image
                     src="https://xstocks.fi/favicon.svg"
-                    alt="xStocks"
+                    alt="Xodds"
                     width={28}
                     height={28}
                     className="rounded-sm"
                   />
                 </div>
                 <div className="flex flex-col gap-0.5 leading-none">
-                  <span className="font-semibold tracking-tight">xStocks</span>
+                  <span className="font-semibold tracking-tight">Xodds</span>
                   <span className="text-[11px] text-sidebar-foreground/50">
                     Tokenized stocks
                   </span>

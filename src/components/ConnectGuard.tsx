@@ -57,7 +57,7 @@ export function ConnectGuard({ children }: { children: React.ReactNode }) {
                 className="text-muted-foreground"
                 onClick={() => router.push("/")}
               >
-                Back to Home
+                Back to Overview
               </Button>
             </CardContent>
           </Card>

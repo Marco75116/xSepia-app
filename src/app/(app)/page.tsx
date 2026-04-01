@@ -24,7 +24,7 @@ type VaultSummary = {
   }[];
 };
 
-export default function HomePage() {
+export default function OverviewPage() {
   const { address, isConnected } = useAccount();
   const [vaults, setVaults] = useState<VaultSummary[]>([]);
   const [loading, setLoading] = useState(false);

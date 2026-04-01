@@ -41,7 +41,7 @@ export function ConnectWalletDialog({
         <DialogHeader>
           <DialogTitle>Connect Wallet</DialogTitle>
           <DialogDescription>
-            Choose a wallet to connect to xStocks.
+            Choose a wallet to connect to Xodds.
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-2">
