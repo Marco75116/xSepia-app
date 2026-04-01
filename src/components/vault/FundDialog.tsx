@@ -17,10 +17,12 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   useAccount,
+  useConfig,
   useReadContract,
   useWaitForTransactionReceipt,
   useWriteContract,
 } from "wagmi";
+import { switchChain as requestWalletChainSwitch } from "wagmi/actions";
 import { ConnectWalletDialog } from "@/components/ConnectWalletDialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,6 +37,7 @@ import { Input } from "@/components/ui/input";
 import { erc20Abi } from "@/lib/abis/erc20";
 import { getChainConfig } from "@/lib/constants";
 import { formatCurrency } from "@/lib/formatters";
+import { walletErrorMessage } from "@/lib/walletErrorMessage";
 
 type FundMethod = "select" | "wallet" | "deposit";
 
@@ -106,9 +109,18 @@ function WalletTransferView({
   chainId: number;
 }) {
   const chainConfig = getChainConfig(chainId);
-  const { address, isConnected } = useAccount();
+  const wagmiConfig = useConfig();
+  const {
+    address,
+    isConnected,
+    connector,
+    chainId: connectedChainId,
+  } = useAccount();
+  const [isSwitching, setIsSwitching] = useState(false);
   const [amount, setAmount] = useState("");
   const [connectOpen, setConnectOpen] = useState(false);
+
+  const isWrongChain = isConnected && connectedChainId !== chainConfig.chainId;
 
   const { data: walletBalance, refetch: refetchBalance } = useReadContract({
     address: chainConfig.usdc,
@@ -168,10 +180,20 @@ function WalletTransferView({
 
   const isLoading = isSigning || isConfirming;
 
-  function handleFund() {
-    if (!isValid || !address) return;
+  async function handleFund() {
+    if (!isValid || !address || !connector) return;
 
     reset();
+
+    try {
+      await requestWalletChainSwitch(wagmiConfig, {
+        chainId: chainConfig.chainId,
+        connector,
+      });
+    } catch (err) {
+      toast.error(walletErrorMessage(err));
+      return;
+    }
 
     const amountInDecimals = BigInt(Math.floor(parsedAmount * 1e6));
 
@@ -229,22 +251,45 @@ function WalletTransferView({
             if (isConfirmed) reset();
           }}
           className="font-mono focus-visible:ring-0 focus-visible:ring-offset-0"
-          disabled={isLoading}
+          disabled={isLoading || isWrongChain}
         />
-        <Button
-          className="gap-1.5 shrink-0"
-          disabled={!isValid || isLoading}
-          onClick={handleFund}
-        >
-          {isLoading ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : isConfirmed ? (
-            <Check className="size-4" />
-          ) : (
-            <SendHorizontal className="size-4" />
-          )}
-          {isSigning ? "Sign" : isConfirming ? "Confirming" : "Fund"}
-        </Button>
+        {isWrongChain ? (
+          <Button
+            className="gap-1.5 shrink-0"
+            disabled={isSwitching}
+            onClick={() => {
+              if (!connector) {
+                toast.error("No active wallet connection");
+                return;
+              }
+              setIsSwitching(true);
+              void requestWalletChainSwitch(wagmiConfig, {
+                chainId: chainConfig.chainId,
+                connector,
+              })
+                .catch((err: unknown) => toast.error(walletErrorMessage(err)))
+                .finally(() => setIsSwitching(false));
+            }}
+          >
+            {isSwitching ? <Loader2 className="size-4 animate-spin" /> : null}
+            Switch to {chainConfig.name}
+          </Button>
+        ) : (
+          <Button
+            className="gap-1.5 shrink-0"
+            disabled={!isValid || isLoading}
+            onClick={handleFund}
+          >
+            {isLoading ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : isConfirmed ? (
+              <Check className="size-4" />
+            ) : (
+              <SendHorizontal className="size-4" />
+            )}
+            {isSigning ? "Sign" : isConfirming ? "Confirming" : "Fund"}
+          </Button>
+        )}
       </div>
       {writeError && (
         <p className="text-sm font-medium text-destructive">

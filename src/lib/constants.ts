@@ -45,6 +45,30 @@ export const CHAIN_CONFIGS: Record<SupportedChainId, ChainConfig> = {
 export const SUPPORTED_CHAIN_IDS: SupportedChainId[] = [57073, 1];
 export const DEFAULT_CHAIN_ID: SupportedChainId = 57073;
 
+export function isAppSupportedChain(
+  chainId: number,
+): chainId is SupportedChainId {
+  return chainId === 1 || chainId === 57073;
+}
+
+const WALLET_CHAIN_NAMES: Record<number, string> = {
+  137: "Polygon",
+};
+
+export function getWalletChainShortLabel(chainId: number): string {
+  if (isAppSupportedChain(chainId)) {
+    return CHAIN_CONFIGS[chainId].shortName;
+  }
+  return WALLET_CHAIN_NAMES[chainId] ?? `Chain ${chainId}`;
+}
+
+export function getWalletChainDisplayName(chainId: number): string {
+  if (isAppSupportedChain(chainId)) {
+    return CHAIN_CONFIGS[chainId].name;
+  }
+  return WALLET_CHAIN_NAMES[chainId] ?? `Chain ${chainId}`;
+}
+
 export function getChainConfig(chainId: number): ChainConfig {
   const config = CHAIN_CONFIGS[chainId as SupportedChainId];
   if (!config) {

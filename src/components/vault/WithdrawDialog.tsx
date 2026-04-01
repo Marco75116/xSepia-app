@@ -11,10 +11,12 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   useAccount,
+  useConfig,
   useReadContracts,
   useWaitForTransactionReceipt,
   useWriteContract,
 } from "wagmi";
+import { switchChain as requestWalletChainSwitch } from "wagmi/actions";
 import { ConnectWalletDialog } from "@/components/ConnectWalletDialog";
 import { StockLogo } from "@/components/StockLogo";
 import { Button } from "@/components/ui/button";
@@ -76,8 +78,9 @@ function WithdrawRow({
   chainId: number;
 }) {
   const chainConfig = getChainConfig(chainId);
+  const wagmiConfig = useConfig();
   const stock = getStockByTicker(comp.ticker);
-  const { address: connectedAddress } = useAccount();
+  const { address: connectedAddress, connector } = useAccount();
   const [amount, setAmount] = useState("");
   const [isMax, setIsMax] = useState(false);
   const submittedAmount = useRef("");
@@ -165,9 +168,24 @@ function WithdrawRow({
   const isValid = parsedRaw > BigInt(0) && parsedRaw <= rawBalance;
   const isLoading = isSigning || isConfirming;
 
-  function handleWithdraw() {
-    if (!isValid) return;
+  async function handleWithdraw() {
+    if (!isValid || !connector) return;
     reset();
+
+    try {
+      await requestWalletChainSwitch(wagmiConfig, {
+        chainId: chainConfig.chainId,
+        connector,
+      });
+    } catch (err) {
+      toast.error(
+        err instanceof Error
+          ? err.message.split("\n")[0]
+          : "Chain switch failed",
+      );
+      return;
+    }
+
     submittedAmount.current = parsedRaw.toString();
     writeContract({
       address: smartAccountAddress as `0x${string}`,

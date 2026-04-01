@@ -307,12 +307,30 @@ export const vaultRoutes = new Elysia()
       const client = getPublicClient(chainConfig.chainId);
 
       console.info("[vault] POST /vault — sending createAccount tx...");
-      const txHash = await walletClient.writeContract({
-        address: chainConfig.accountFactory,
-        abi: accountFactoryAbi,
-        functionName: "createAccount",
-        args: [owner, saltIndex, config],
-      });
+      let txHash: `0x${string}`;
+      try {
+        txHash = await walletClient.writeContract({
+          address: chainConfig.accountFactory,
+          abi: accountFactoryAbi,
+          functionName: "createAccount",
+          args: [owner, saltIndex, config],
+        });
+      } catch (err) {
+        console.error(
+          "[vault] POST /vault — createAccount tx failed:",
+          err instanceof Error ? err.message : err,
+        );
+        if (err instanceof Error && "details" in err) {
+          console.error(
+            "[vault] POST /vault — tx error details:",
+            (err as unknown as { details: unknown }).details,
+          );
+        }
+        if (err instanceof Error && "cause" in err) {
+          console.error("[vault] POST /vault — tx error cause:", err.cause);
+        }
+        throw err;
+      }
       console.info(`[vault] POST /vault — tx sent: ${txHash}`);
 
       const receipt = await client.waitForTransactionReceipt({

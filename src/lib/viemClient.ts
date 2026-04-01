@@ -10,12 +10,12 @@ const chains = {
 
 export const publicClient = createPublicClient({
   chain: ink,
-  transport: http(),
+  transport: http(process.env.RPC_INK_HTTP || undefined),
 });
 
 export const ethPublicClient = createPublicClient({
   chain: mainnet,
-  transport: http(),
+  transport: http(process.env.RPC_ETH_HTTP || undefined),
 });
 
 export function getPublicClient(chainId: SupportedChainId) {
@@ -29,6 +29,10 @@ export function getWalletClient(chainId: SupportedChainId = 57073) {
   return createWalletClient({
     account: operatorAccount,
     chain: chains[chainId],
-    transport: http(),
+    transport: http(
+      chainId === 1
+        ? process.env.RPC_ETH_HTTP || undefined
+        : process.env.RPC_INK_HTTP || undefined,
+    ),
   });
 }
