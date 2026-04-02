@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Xodds",
+  title: "xSepia",
   description: "Web3 batch-buying app for tokenized stock investments",
 };
 
