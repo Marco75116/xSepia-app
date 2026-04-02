@@ -12,6 +12,15 @@ import { getStockByTicker } from "@/lib/data";
 import { api } from "@/lib/eden";
 import { formatCurrency } from "@/lib/formatters";
 
+const USDC_DECIMALS = 6;
+const TOKEN_DECIMALS = 18;
+
+function formatRawAmount(raw: string, ticker: string): string {
+  const decimals = ticker === "USDC" ? USDC_DECIMALS : TOKEN_DECIMALS;
+  const value = Number(raw) / 10 ** decimals;
+  return value.toFixed(2);
+}
+
 type BuyOrder = {
   id: string;
   ticker: string;
@@ -262,7 +271,7 @@ export function OrdersHistory({
                   <p className="font-mono text-sm font-medium">
                     {order.type === "buy"
                       ? formatCurrency(Number(order.amount))
-                      : order.amount}
+                      : formatRawAmount(order.amount, order.ticker)}
                   </p>
                   <Badge variant={config.variant} className="gap-1">
                     <StatusIcon className="size-3" />
