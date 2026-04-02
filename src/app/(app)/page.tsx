@@ -56,33 +56,37 @@ export default function OverviewPage() {
   return (
     <ContentLayout>
       <div className="space-y-8">
-        <BalanceHeader
-          totalBalance={0}
-          dailyGainAmount={0}
-          dailyGainPercent={0}
-        />
+        {!isConnected ? (
+          <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed py-12 text-muted-foreground">
+            <WalletCards className="size-8" />
+            <p className="text-sm">Connect your wallet to view your vaults</p>
+          </div>
+        ) : (
+          <>
+            <BalanceHeader
+              totalBalance={0}
+              dailyGainAmount={0}
+              dailyGainPercent={0}
+            />
 
-        <div className="space-y-4">
-          <h2 className="text-sm font-semibold">Your Vaults</h2>
+            <div className="space-y-4">
+              <h2 className="text-sm font-semibold">Your Vaults</h2>
 
-          {!isConnected ? (
-            <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed py-12 text-muted-foreground">
-              <WalletCards className="size-8" />
-              <p className="text-sm">Connect your wallet to view your vaults</p>
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="size-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {vaults.map((vault) => (
+                    <VaultCard key={vault.id} vault={vault} />
+                  ))}
+                  <CreateVaultCard />
+                </div>
+              )}
             </div>
-          ) : loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="size-5 animate-spin text-muted-foreground" />
-            </div>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {vaults.map((vault) => (
-                <VaultCard key={vault.id} vault={vault} />
-              ))}
-              <CreateVaultCard />
-            </div>
-          )}
-        </div>
+          </>
+        )}
       </div>
     </ContentLayout>
   );
