@@ -3,6 +3,7 @@
 import {
   AlertCircle,
   ArrowDownLeft,
+  ArrowUpRight,
   CheckCircle2,
   Clock,
   ExternalLink,
@@ -28,7 +29,7 @@ import { formatCurrency, formatDate } from "@/lib/formatters";
 
 type Order = {
   id: string;
-  type: "buy" | "withdraw";
+  type: "buy" | "withdraw" | "sell";
   vaultName: string;
   chainId: number;
   ticker: string;
@@ -57,7 +58,7 @@ const statusConfig: Record<
 function getOrderExplorerUrl(order: Order): string | null {
   const chainConfig = getChainConfig(order.chainId);
 
-  if (order.type === "buy" && order.orderUid) {
+  if ((order.type === "buy" || order.type === "sell") && order.orderUid) {
     if (chainConfig.swapProtocol === "cow") {
       return `https://explorer.cow.fi/ink/orders/${order.orderUid}`;
     }
@@ -119,7 +120,11 @@ export default function ActivityPage() {
                   statusConfig[order.status] ?? statusConfig.pending;
                 const StatusIcon = config.icon;
                 const TypeIcon =
-                  order.type === "buy" ? ShoppingCart : ArrowDownLeft;
+                  order.type === "buy"
+                    ? ShoppingCart
+                    : order.type === "sell"
+                      ? ArrowUpRight
+                      : ArrowDownLeft;
 
                 const externalUrl = getOrderExplorerUrl(order);
 
@@ -144,11 +149,17 @@ export default function ActivityPage() {
                         className={
                           order.type === "buy"
                             ? "gap-1 border-positive/20 bg-positive/10 text-positive"
-                            : "gap-1"
+                            : order.type === "sell"
+                              ? "gap-1 border-destructive/20 bg-destructive/10 text-destructive"
+                              : "gap-1"
                         }
                       >
                         <TypeIcon className="size-3" />
-                        {order.type === "buy" ? "Buy" : "Withdraw"}
+                        {order.type === "buy"
+                          ? "Buy"
+                          : order.type === "sell"
+                            ? "Sell"
+                            : "Withdraw"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground">

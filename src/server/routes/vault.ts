@@ -8,6 +8,7 @@ import { getPublicClient, getWalletClient } from "@/lib/viemClient";
 import { db } from "@/server/db";
 import {
   buyOrder,
+  sellOrder,
   vault,
   vaultComposition,
   withdrawOrder,
@@ -17,7 +18,7 @@ export const vaultRoutes = new Elysia()
   .get("/orders", async () => {
     console.info("[vault] GET /orders — fetching all orders");
 
-    const [buys, withdrawals, allVaults] = await Promise.all([
+    const [buys, withdrawals, sells, allVaults] = await Promise.all([
       db
         .select({
           id: buyOrder.id,
@@ -45,12 +46,25 @@ export const vaultRoutes = new Elysia()
         .from(withdrawOrder)
         .orderBy(desc(withdrawOrder.createdAt)),
       db
+        .select({
+          id: sellOrder.id,
+          vaultId: sellOrder.vaultId,
+          ticker: sellOrder.ticker,
+          sellAmount: sellOrder.sellAmount,
+          orderUid: sellOrder.orderUid,
+          status: sellOrder.status,
+          chainId: sellOrder.chainId,
+          createdAt: sellOrder.createdAt,
+        })
+        .from(sellOrder)
+        .orderBy(desc(sellOrder.createdAt)),
+      db
         .select({ id: vault.id, name: vault.name, chainId: vault.chainId })
         .from(vault),
     ]);
 
     console.info(
-      `[vault] GET /orders — found ${buys.length} buys, ${withdrawals.length} withdrawals, ${allVaults.length} vaults`,
+      `[vault] GET /orders — found ${buys.length} buys, ${withdrawals.length} withdrawals, ${sells.length} sells, ${allVaults.length} vaults`,
     );
 
     const vaultMap = new Map(
@@ -80,6 +94,18 @@ export const vaultRoutes = new Elysia()
         status: o.status,
         orderUid: null as string | null,
         txHash: o.txHash,
+        createdAt: String(o.createdAt),
+      })),
+      ...sells.map((o) => ({
+        id: o.id,
+        type: "sell" as const,
+        vaultName: vaultMap.get(o.vaultId)?.name ?? "Unknown",
+        chainId: o.chainId,
+        ticker: o.ticker,
+        amount: String(o.sellAmount),
+        status: o.status,
+        orderUid: o.orderUid,
+        txHash: null as string | null,
         createdAt: String(o.createdAt),
       })),
     ].sort((a, b) => Number(BigInt(b.createdAt) - BigInt(a.createdAt)));
@@ -252,6 +278,38 @@ export const vaultRoutes = new Elysia()
         amount: String(o.amount),
         txHash: o.txHash,
         status: o.status,
+        createdAt: String(o.createdAt),
+      }));
+    },
+    {
+      params: t.Object({
+        id: t.String(),
+      }),
+    },
+  )
+  .get(
+    "/vault/:id/sells",
+    async ({ params }) => {
+      console.info(`[vault] GET /vault/${params.id}/sells`);
+
+      const orders = await db
+        .select()
+        .from(sellOrder)
+        .where(eq(sellOrder.vaultId, params.id))
+        .orderBy(desc(sellOrder.createdAt));
+
+      console.info(
+        `[vault] GET /vault/${params.id}/sells — ${orders.length} orders`,
+      );
+
+      return orders.map((o) => ({
+        id: o.id,
+        ticker: o.ticker,
+        tokenAddress: o.tokenAddress,
+        sellAmount: String(o.sellAmount),
+        orderUid: o.orderUid,
+        status: o.status,
+        error: o.error,
         createdAt: String(o.createdAt),
       }));
     },

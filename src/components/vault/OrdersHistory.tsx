@@ -33,9 +33,20 @@ type WithdrawOrder = {
   createdAt: string;
 };
 
+type SellOrder = {
+  id: string;
+  ticker: string;
+  tokenAddress: string;
+  sellAmount: string;
+  orderUid: string | null;
+  status: string;
+  error: string | null;
+  createdAt: string;
+};
+
 type UnifiedOrder = {
   id: string;
-  type: "buy" | "withdraw";
+  type: "buy" | "withdraw" | "sell";
   ticker: string;
   amount: string;
   status: string;
@@ -96,7 +107,7 @@ function getOrderExplorerUrl(
 ): string | null {
   const chainConfig = getChainConfig(chainId);
 
-  if (order.type === "buy" && order.orderUid) {
+  if ((order.type === "buy" || order.type === "sell") && order.orderUid) {
     if (chainConfig.swapProtocol === "cow") {
       return `https://explorer.cow.fi/ink/orders/${order.orderUid}`;
     }
@@ -122,9 +133,10 @@ export function OrdersHistory({
 
   useEffect(() => {
     async function fetchOrders() {
-      const [buyResult, withdrawResult] = await Promise.all([
+      const [buyResult, withdrawResult, sellResult] = await Promise.all([
         api.vault({ id: vaultId }).orders.get(),
         api.vault({ id: vaultId }).withdrawals.get(),
+        api.vault({ id: vaultId }).sells.get(),
       ]);
 
       const unified: UnifiedOrder[] = [];
@@ -153,6 +165,20 @@ export function OrdersHistory({
             status: o.status,
             createdAt: o.createdAt,
             txHash: o.txHash,
+          });
+        }
+      }
+
+      if (!sellResult.error && sellResult.data) {
+        for (const o of sellResult.data as SellOrder[]) {
+          unified.push({
+            id: o.id,
+            type: "sell",
+            ticker: o.ticker,
+            amount: o.sellAmount,
+            status: o.status,
+            createdAt: o.createdAt,
+            orderUid: o.orderUid,
           });
         }
       }
@@ -204,7 +230,7 @@ export function OrdersHistory({
         {orders.map((order, i) => {
           const stock = getStockByTicker(order.ticker);
           const statusMap =
-            order.type === "buy" ? buyStatusConfig : withdrawStatusConfig;
+            order.type === "withdraw" ? withdrawStatusConfig : buyStatusConfig;
           const config =
             statusMap[order.status as keyof typeof statusMap] ??
             buyStatusConfig.submitted;
